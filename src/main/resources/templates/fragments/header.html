@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+<header th:fragment="guestHeader" class="site-header">
+    <div class="container nav-wrap">
+        <a class="brand" th:href="@{/}">Maison Aurelia</a>
+        <nav class="nav-links">
+            <a th:href="@{/}">Trang chủ</a>
+            <a th:href="@{/guest/products}">Sản phẩm</a>
+            <a href="#contact">Liên hệ</a>
+        </nav>
+        <a class="cart-link" th:href="@{/guest/cart}">Giỏ hàng</a>
+    </div>
+</header>
+
+<header th:fragment="adminHeader" class="admin-topbar">
+    <div class="admin-topbar-inner">
+        <h1>Bảng điều khiển quản trị</h1>
+        <div class="admin-actions">
+            <a href="#">Hồ sơ</a>
+            <a th:href="@{/admin/login}">Đăng xuất</a>
+        </div>
+    </div>
+</header>
+</body>
+</html>

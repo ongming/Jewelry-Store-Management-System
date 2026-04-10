@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cửa hàng trang sức | Sản phẩm</title>
+    <link rel="stylesheet" th:href="@{/css/guest/common.css}">
+    <link rel="stylesheet" th:href="@{/css/guest/products.css}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: guestHeader}"></div>
+
+<section class="container section-space">
+    <div class="section-title">
+        <p>Bộ sưu tập</p>
+        <h1>Sản phẩm cao cấp</h1>
+    </div>
+
+    <div class="products-layout">
+        <aside class="filter-panel">
+            <h3>Bộ lọc</h3>
+            <form th:action="@{/guest/products}" method="get">
+                <label for="category">Danh mục</label>
+                <select id="category" name="category">
+                    <option value="">Tất cả</option>
+                    <option th:each="cat : ${categories}" th:value="${cat}" th:text="${cat}"
+                            th:selected="${selectedCategory == cat}"></option>
+                </select>
+
+                <label for="minPrice">Giá từ</label>
+                <input id="minPrice" name="minPrice" type="number" placeholder="5000000">
+
+                <label for="maxPrice">Giá đến</label>
+                <input id="maxPrice" name="maxPrice" type="number" placeholder="15000000">
+
+                <button type="submit" class="btn-gold">Áp dụng</button>
+            </form>
+        </aside>
+
+        <div class="product-grid">
+            <article class="product-card" th:each="item : ${products}">
+                <img th:src="${item.imageUrl}" th:alt="${item.productName}">
+                <div class="product-card-content">
+                    <small th:text="${item.category}">Nhẫn</small>
+                    <h3 th:text="${item.productName}">Tên sản phẩm</h3>
+                    <a th:href="@{/guest/product-detail/{id}(id=${item.id})}">Xem chi tiết</a>
+                </div>
+            </article>
+        </div>
+    </div>
+</section>
+
+<div th:replace="~{fragments/footer :: guestFooter}"></div>
+</body>
+</html>
+

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cửa hàng trang sức | Chi tiết sản phẩm</title>
+    <link rel="stylesheet" th:href="@{/css/guest/common.css}">
+    <link rel="stylesheet" th:href="@{/css/guest/products.css}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: guestHeader}"></div>
+
+<section class="container section-space detail-grid">
+    <div class="gallery-block">
+        <img class="main-image" th:src="${product.imageUrl}" th:alt="${product.productName}">
+        <div class="thumb-grid">
+            <img th:src="${product.imageUrl}" th:alt="${product.productName}">
+            <img th:src="${product.imageUrl}" th:alt="${product.productName}">
+            <img th:src="${product.imageUrl}" th:alt="${product.productName}">
+        </div>
+    </div>
+
+    <div class="detail-info">
+        <p class="meta" th:text="${product.category}">Danh mục</p>
+        <h1 th:text="${product.productName}">Tên sản phẩm</h1>
+        <h2 th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT')} + ' VND'">0 VND</h2>
+        <p th:text="${product.description}">Mô tả</p>
+
+        <ul>
+            <li><strong>Chất liệu:</strong> <span th:text="${product.material}">Vàng 18K</span></li>
+            <li><strong>Trọng lượng:</strong> <span th:text="${product.weight}">4.2g</span></li>
+        </ul>
+
+        <a class="btn-gold" th:href="@{/guest/cart}">Thêm vào giỏ hàng</a>
+    </div>
+</section>
+
+<div th:replace="~{fragments/footer :: guestFooter}"></div>
+</body>
+</html>
+
