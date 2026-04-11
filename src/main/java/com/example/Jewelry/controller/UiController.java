@@ -83,12 +83,6 @@ public class UiController {
         return "guest/checkout";
     }
 
-    @GetMapping("/admin/login")
-    public String adminLogin(@RequestParam(required = false) String error, Model model) {
-        model.addAttribute("errorMessage", error != null ? "Tên đăng nhập hoặc mật khẩu không đúng." : "");
-        return "admin/login";
-    }
-
     @GetMapping("/admin/dashboard")
     public String dashboard(Model model) {
         model.addAttribute("ordersToday", 18);

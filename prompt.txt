@@ -1,161 +1,94 @@
-Create a frontend UI for a Jewelry Store Management System using Java Spring Boot (Thymeleaf), HTML, and CSS.
-
-Project Requirements:
-
-* Use Spring Boot structure
-* Place HTML files in: src/main/resources/templates/
-* Place CSS files in: src/main/resources/static/css/
-* Separate UI into two main parts:
-
-  1. Guest (customer - no login)
-  2. Admin/Staff (login required)
-
-Folder Structure:
-
-templates/
-├── guest/
-│   ├── home.html
-│   ├── products.html
-│   ├── product-detail.html
-│   ├── cart.html
-│   └── checkout.html
-│
-└── admin/
-├── login.html
-└── dashboard.html
-
-static/css/
-├── guest/
-│   ├── home.css
-│   ├── products.css
-│   └── common.css
-│
-└── admin/
-├── login.css
-└── dashboard.css
+Create a complete login feature for a Jewelry Store Management System using Java Spring Boot, Thymeleaf, HTML, and CSS.
 
 ========================================
-GUEST UI REQUIREMENTS (Luxury Style)
-====================================
+PROJECT STRUCTURE
+=================
 
-Design style:
-
-* Inspired by Dior, Chanel luxury brands
-* Black, white, gold color palette
-* Elegant serif fonts
-* Minimalist layout
-* Smooth hover animations
-
-Pages:
-
-1. home.html
-
-* Hero banner with jewelry image
-* Navbar: Home, Products, Contact
-* Featured products section
-* Category section
-* Footer
-
-2. products.html
-
-* Grid layout products
-* Filter sidebar:
-
-  * Category
-  * Price range
-* Product card:
-
-  * Image
-  * Name
-  * Price
-  * Hover effect
-
-3. product-detail.html
-
-* Large image gallery
-* Product name, price
-* Description
-* Material, weight
-* Add to cart button
-
-4. cart.html
-
-* List products
-* Quantity update
-* Total price
-
-5. checkout.html
-
-* Guest form:
-
-  * CustomerName
-  * Phone
-  * Email
-  * ShippingAddress
-* Payment method:
-
-  * COD
-  * Bank
-  * Momo/VNPAY
+* templates/management/login.html
+* static/css/management/login.css
+* java/com/.../controller/LoginController.java
+* java/com/.../repository/AccountRepository.java
+* java/com/.../config/DBConnection.java
 
 ========================================
-ADMIN UI REQUIREMENTS (Login + Dashboard)
-=========================================
+DATABASE
+========
 
-1. login.html
+Table: Account
 
-* Centered login form
-* Background: blurred jewelry image
-* Fields:
-
-  * Username
-  * Password
-* Button: Login
-* Error message UI
-* Luxury style (dark + gold)
-
-2. dashboard.html
-
-* Sidebar:
-
-  * Dashboard
-  * Products
-  * Orders
-  * Customers
-  * Inventory
-  * Supplier
-  * Staff/Admin
-* Topbar:
-
-  * Profile
-  * Logout
-* Main content:
-
-  * Stats cards (orders, revenue)
-  * Recent orders table
+* Username
+* PasswordHash
+* Status
 
 ========================================
-TECHNICAL REQUIREMENTS
-======================
+REQUIREMENTS
+============
 
-* Use Thymeleaf syntax for dynamic data
+1. LOGIN UI (Thymeleaf)
 
-* Use reusable components:
-
-  * header
-  * footer
-
-* Link CSS properly:
-
-  <link rel="stylesheet" th:href="@{/css/...}">
-
-* Use clean, semantic HTML5
-
-* Responsive design (mobile friendly)
+* Username input
+* Password input
+* Submit form POST /login
+* Show error message if login fails
 
 ========================================
-GOAL
-====
+2. DATABASE CONNECTION (MANDATORY)
+==================================
 
-Generate clean, modern, luxury UI similar to high-end jewelry brands.
-Code must be well-structured and separated into files as described.
+* Implement DBConnection using Singleton Pattern
+
+Requirements:
+
+* private static instance
+* private constructor
+* public static getInstance()
+* method getConnection()
+
+Use SQL Server:
+jdbc:sqlserver://localhost:1433;databaseName=JewelryStoreDB
+
+========================================
+3. REPOSITORY LAYER
+===================
+
+Create AccountRepository:
+
+Method:
+boolean login(String username, String password)
+
+Logic:
+
+* Use DBConnection.getInstance().getConnection()
+
+* Query:
+  SELECT * FROM Account
+  WHERE Username = ? AND PasswordHash = ? AND Status = 'ACTIVE'
+
+* Return true if found, otherwise false
+
+========================================
+4. CONTROLLER
+=============
+
+Create LoginController:
+
+GET /login:
+
+* return login page
+
+POST /login:
+
+* call AccountRepository.login()
+* if success:
+  redirect to /management/dashboard
+* if fail:
+  return login page with error message
+
+========================================
+5. GOAL
+=======
+
+* Fully working login system
+* Must connect to database
+* Must use Singleton Pattern for DB connection
+* Clean structure: Controller → Repository → DBConnection

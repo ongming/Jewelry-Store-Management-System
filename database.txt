@@ -1,0 +1,205 @@
+USE master;
+GO
+
+IF EXISTS (SELECT name FROM sys.databases WHERE name = N'JewelryStoreDB')
+BEGIN
+    ALTER DATABASE JewelryStoreDB SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE JewelryStoreDB;
+END
+GO
+
+CREATE DATABASE JewelryStoreDB;
+GO
+
+USE JewelryStoreDB;
+GO
+
+-- ========================================
+-- ACCOUNT (LOGIN CHUNG)
+-- ========================================
+CREATE TABLE Account (
+    AccountID INT IDENTITY PRIMARY KEY,
+    Username NVARCHAR(50) UNIQUE NOT NULL,
+    PasswordHash NVARCHAR(255) NOT NULL,
+    Email NVARCHAR(100),
+    Phone NVARCHAR(20),
+    Status NVARCHAR(20),
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME
+);
+
+-- ========================================
+-- ADMIN
+-- ========================================
+CREATE TABLE Admin (
+    AdminID INT IDENTITY PRIMARY KEY,
+    AccountID INT UNIQUE,
+    FullName NVARCHAR(100),
+    PermissionLevel INT,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+
+    FOREIGN KEY (AccountID) REFERENCES Account(AccountID)
+);
+
+-- ========================================
+-- STAFF
+-- ========================================
+CREATE TABLE Staff (
+    StaffID INT IDENTITY PRIMARY KEY,
+    AccountID INT UNIQUE,
+    FullName NVARCHAR(100),
+    Gender NVARCHAR(10),
+    DateOfBirth DATE,
+    Address NVARCHAR(255),
+    Salary DECIMAL(12,2),
+    HireDate DATE,
+    Status NVARCHAR(20),
+
+    FOREIGN KEY (AccountID) REFERENCES Account(AccountID)
+);
+
+-- ========================================
+-- CUSTOMER (KHÔNG LOGIN)
+-- ========================================
+CREATE TABLE Customer (
+    CustomerID INT IDENTITY PRIMARY KEY,
+    FullName NVARCHAR(100),
+    Phone NVARCHAR(20),
+    Email NVARCHAR(100),
+    Address NVARCHAR(255),
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- ========================================
+-- CATEGORY
+-- ========================================
+CREATE TABLE Category (
+    CategoryID INT IDENTITY PRIMARY KEY,
+    CategoryName NVARCHAR(100),
+    Description NVARCHAR(255),
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- ========================================
+-- PRODUCT
+-- ========================================
+CREATE TABLE Product (
+    ProductID INT IDENTITY PRIMARY KEY,
+    ProductName NVARCHAR(150),
+    Description NVARCHAR(500),
+    Price DECIMAL(15,2),
+    Weight DECIMAL(10,2),
+    Material NVARCHAR(50),
+    CategoryID INT,
+    Status NVARCHAR(20),
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME,
+
+    FOREIGN KEY (CategoryID) REFERENCES Category(CategoryID)
+);
+
+-- ========================================
+-- INVENTORY
+-- ========================================
+CREATE TABLE Inventory (
+    InventoryID INT IDENTITY PRIMARY KEY,
+    ProductID INT,
+    Quantity INT,
+    Location NVARCHAR(100),
+    LastUpdated DATETIME DEFAULT GETDATE(),
+
+    FOREIGN KEY (ProductID) REFERENCES Product(ProductID)
+);
+
+-- ========================================
+-- SUPPLIER
+-- ========================================
+CREATE TABLE Supplier (
+    SupplierID INT IDENTITY PRIMARY KEY,
+    SupplierName NVARCHAR(150),
+    Phone NVARCHAR(20),
+    Email NVARCHAR(100),
+    Address NVARCHAR(255),
+    Status NVARCHAR(20),
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- ========================================
+-- IMPORT RECEIPT
+-- ========================================
+CREATE TABLE ImportReceipt (
+    ImportID INT IDENTITY PRIMARY KEY,
+    StaffID INT,
+    SupplierID INT,
+    ImportDate DATETIME DEFAULT GETDATE(),
+    TotalAmount DECIMAL(15,2),
+    Status NVARCHAR(20),
+    Note NVARCHAR(255),
+
+    FOREIGN KEY (StaffID) REFERENCES Staff(StaffID),
+    FOREIGN KEY (SupplierID) REFERENCES Supplier(SupplierID)
+);
+
+-- ========================================
+-- IMPORT DETAIL
+-- ========================================
+CREATE TABLE ImportDetail (
+    ImportDetailID INT IDENTITY PRIMARY KEY,
+    ImportID INT,
+    ProductID INT,
+    Quantity INT,
+    ImportPrice DECIMAL(15,2),
+
+    FOREIGN KEY (ImportID) REFERENCES ImportReceipt(ImportID),
+    FOREIGN KEY (ProductID) REFERENCES Product(ProductID)
+);
+
+-- ========================================
+-- ORDER
+-- ========================================
+CREATE TABLE [Order] (
+    OrderID INT IDENTITY PRIMARY KEY,
+    CustomerID INT NULL,
+    StaffID INT NULL,
+    CustomerName NVARCHAR(100),
+    CustomerPhone NVARCHAR(20),
+    CustomerEmail NVARCHAR(100),
+    ShippingAddress NVARCHAR(255),
+    OrderDate DATETIME DEFAULT GETDATE(),
+    TotalAmount DECIMAL(15,2),
+    Status NVARCHAR(20),
+    PaymentStatus NVARCHAR(20),
+
+    FOREIGN KEY (CustomerID) REFERENCES Customer(CustomerID),
+    FOREIGN KEY (StaffID) REFERENCES Staff(StaffID)
+);
+
+-- ========================================
+-- ORDER DETAIL
+-- ========================================
+CREATE TABLE OrderDetail (
+    OrderDetailID INT IDENTITY PRIMARY KEY,
+    OrderID INT,
+    ProductID INT,
+    Quantity INT,
+    UnitPrice DECIMAL(15,2),
+    Discount DECIMAL(10,2),
+
+    FOREIGN KEY (OrderID) REFERENCES [Order](OrderID),
+    FOREIGN KEY (ProductID) REFERENCES Product(ProductID)
+);
+
+-- ========================================
+-- PAYMENT
+-- ========================================
+CREATE TABLE Payment (
+    PaymentID INT IDENTITY PRIMARY KEY,
+    OrderID INT,
+    PaymentMethod NVARCHAR(50),
+    PaymentDate DATETIME DEFAULT GETDATE(),
+    Amount DECIMAL(15,2),
+    Status NVARCHAR(20),
+    TransactionCode NVARCHAR(100),
+
+    FOREIGN KEY (OrderID) REFERENCES [Order](OrderID)
+);
