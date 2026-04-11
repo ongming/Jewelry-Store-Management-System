@@ -1,0 +1,73 @@
+package com.example.Jewelry.model.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = "voucher")
+public class Voucher {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "voucher_id")
+    private int voucherId;
+
+    @Column(name = "code", nullable = false, unique = true, length = 50)
+    private String code;
+
+    @Column(name = "discount_value", nullable = false, precision = 15, scale = 2)
+    private BigDecimal discountValue;
+
+    @OneToMany(mappedBy = "voucher")
+    private List<Order> orders = new ArrayList<>();
+
+    public Voucher() {
+    }
+
+    public Voucher(int voucherId, String code, BigDecimal discountValue) {
+        this.voucherId = voucherId;
+        this.code = code;
+        this.discountValue = discountValue;
+    }
+
+    public int getVoucherId() {
+        return voucherId;
+    }
+
+    public void setVoucherId(int voucherId) {
+        this.voucherId = voucherId;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
+    }
+
+    public BigDecimal getDiscountValue() {
+        return discountValue;
+    }
+
+    public void setDiscountValue(BigDecimal discountValue) {
+        this.discountValue = discountValue;
+    }
+
+    public List<Order> getOrders() {
+        return orders;
+    }
+
+    public void setOrders(List<Order> orders) {
+        this.orders = orders;
+    }
+}

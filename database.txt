@@ -15,191 +15,271 @@ USE JewelryStoreDB;
 GO
 
 -- ========================================
--- ACCOUNT (LOGIN CHUNG)
+-- ACCOUNT (BASE CLASS)
 -- ========================================
-CREATE TABLE Account (
-    AccountID INT IDENTITY PRIMARY KEY,
-    Username NVARCHAR(50) UNIQUE NOT NULL,
-    PasswordHash NVARCHAR(255) NOT NULL,
-    Email NVARCHAR(100),
-    Phone NVARCHAR(20),
-    Status NVARCHAR(20),
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    UpdatedAt DATETIME
+CREATE TABLE account (
+    account_id INT IDENTITY(1,1) PRIMARY KEY,
+    username NVARCHAR(100) NOT NULL UNIQUE,
+    password_hash NVARCHAR(255) NOT NULL,
+    full_name NVARCHAR(150) NOT NULL,
+    role_name NVARCHAR(30) NOT NULL
 );
 
 -- ========================================
--- ADMIN
+-- STAFF (JOINED INHERITANCE FROM ACCOUNT)
 -- ========================================
-CREATE TABLE Admin (
-    AdminID INT IDENTITY PRIMARY KEY,
-    AccountID INT UNIQUE,
-    FullName NVARCHAR(100),
-    PermissionLevel INT,
-    CreatedAt DATETIME DEFAULT GETDATE(),
+CREATE TABLE staff (
+    account_id INT PRIMARY KEY,
+    staff_id INT NOT NULL UNIQUE,
+    manager_admin_account_id INT NULL,
 
-    FOREIGN KEY (AccountID) REFERENCES Account(AccountID)
+    CONSTRAINT fk_staff_account FOREIGN KEY (account_id) REFERENCES account(account_id)
 );
 
 -- ========================================
--- STAFF
+-- ADMIN (JOINED INHERITANCE FROM STAFF)
 -- ========================================
-CREATE TABLE Staff (
-    StaffID INT IDENTITY PRIMARY KEY,
-    AccountID INT UNIQUE,
-    FullName NVARCHAR(100),
-    Gender NVARCHAR(10),
-    DateOfBirth DATE,
-    Address NVARCHAR(255),
-    Salary DECIMAL(12,2),
-    HireDate DATE,
-    Status NVARCHAR(20),
-
-    FOREIGN KEY (AccountID) REFERENCES Account(AccountID)
+CREATE TABLE admin (
+    account_id INT PRIMARY KEY,
+    CONSTRAINT fk_admin_staff FOREIGN KEY (account_id) REFERENCES staff(account_id)
 );
 
--- ========================================
--- CUSTOMER (KHÔNG LOGIN)
--- ========================================
-CREATE TABLE Customer (
-    CustomerID INT IDENTITY PRIMARY KEY,
-    FullName NVARCHAR(100),
-    Phone NVARCHAR(20),
-    Email NVARCHAR(100),
-    Address NVARCHAR(255),
-    CreatedAt DATETIME DEFAULT GETDATE()
-);
+ALTER TABLE staff
+ADD CONSTRAINT fk_staff_manager_admin FOREIGN KEY (manager_admin_account_id) REFERENCES admin(account_id);
 
 -- ========================================
--- CATEGORY
+-- CUSTOMER
 -- ========================================
-CREATE TABLE Category (
-    CategoryID INT IDENTITY PRIMARY KEY,
-    CategoryName NVARCHAR(100),
-    Description NVARCHAR(255),
-    CreatedAt DATETIME DEFAULT GETDATE()
-);
-
--- ========================================
--- PRODUCT
--- ========================================
-CREATE TABLE Product (
-    ProductID INT IDENTITY PRIMARY KEY,
-    ProductName NVARCHAR(150),
-    Description NVARCHAR(500),
-    Price DECIMAL(15,2),
-    Weight DECIMAL(10,2),
-    Material NVARCHAR(50),
-    CategoryID INT,
-    Status NVARCHAR(20),
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    UpdatedAt DATETIME,
-
-    FOREIGN KEY (CategoryID) REFERENCES Category(CategoryID)
-);
-
--- ========================================
--- INVENTORY
--- ========================================
-CREATE TABLE Inventory (
-    InventoryID INT IDENTITY PRIMARY KEY,
-    ProductID INT,
-    Quantity INT,
-    Location NVARCHAR(100),
-    LastUpdated DATETIME DEFAULT GETDATE(),
-
-    FOREIGN KEY (ProductID) REFERENCES Product(ProductID)
+CREATE TABLE customer (
+    customer_id INT IDENTITY(1,1) PRIMARY KEY,
+    customer_name NVARCHAR(150) NOT NULL,
+    phone NVARCHAR(20),
+    address NVARCHAR(255)
 );
 
 -- ========================================
 -- SUPPLIER
 -- ========================================
-CREATE TABLE Supplier (
-    SupplierID INT IDENTITY PRIMARY KEY,
-    SupplierName NVARCHAR(150),
-    Phone NVARCHAR(20),
-    Email NVARCHAR(100),
-    Address NVARCHAR(255),
-    Status NVARCHAR(20),
-    CreatedAt DATETIME DEFAULT GETDATE()
+CREATE TABLE supplier (
+    supplier_id INT IDENTITY(1,1) PRIMARY KEY,
+    supplier_name NVARCHAR(150) NOT NULL,
+    contact_person NVARCHAR(150),
+    phone NVARCHAR(20),
+    address NVARCHAR(255)
 );
 
 -- ========================================
--- IMPORT RECEIPT
+-- CATEGORY
 -- ========================================
-CREATE TABLE ImportReceipt (
-    ImportID INT IDENTITY PRIMARY KEY,
-    StaffID INT,
-    SupplierID INT,
-    ImportDate DATETIME DEFAULT GETDATE(),
-    TotalAmount DECIMAL(15,2),
-    Status NVARCHAR(20),
-    Note NVARCHAR(255),
-
-    FOREIGN KEY (StaffID) REFERENCES Staff(StaffID),
-    FOREIGN KEY (SupplierID) REFERENCES Supplier(SupplierID)
+CREATE TABLE category (
+    category_id INT IDENTITY(1,1) PRIMARY KEY,
+    category_name NVARCHAR(100) NOT NULL UNIQUE
 );
 
 -- ========================================
--- IMPORT DETAIL
+-- PRODUCT
 -- ========================================
-CREATE TABLE ImportDetail (
-    ImportDetailID INT IDENTITY PRIMARY KEY,
-    ImportID INT,
-    ProductID INT,
-    Quantity INT,
-    ImportPrice DECIMAL(15,2),
+CREATE TABLE product (
+    product_id INT IDENTITY(1,1) PRIMARY KEY,
+    product_code NVARCHAR(50) NOT NULL UNIQUE,
+    product_name NVARCHAR(150) NOT NULL,
+    base_price DECIMAL(15,2) NOT NULL,
+    category_id INT NOT NULL,
 
-    FOREIGN KEY (ImportID) REFERENCES ImportReceipt(ImportID),
-    FOREIGN KEY (ProductID) REFERENCES Product(ProductID)
+    CONSTRAINT fk_product_category FOREIGN KEY (category_id) REFERENCES category(category_id)
 );
 
 -- ========================================
--- ORDER
+-- PRODUCT ATTRIBUTE
 -- ========================================
-CREATE TABLE [Order] (
-    OrderID INT IDENTITY PRIMARY KEY,
-    CustomerID INT NULL,
-    StaffID INT NULL,
-    CustomerName NVARCHAR(100),
-    CustomerPhone NVARCHAR(20),
-    CustomerEmail NVARCHAR(100),
-    ShippingAddress NVARCHAR(255),
-    OrderDate DATETIME DEFAULT GETDATE(),
-    TotalAmount DECIMAL(15,2),
-    Status NVARCHAR(20),
-    PaymentStatus NVARCHAR(20),
+CREATE TABLE product_attribute (
+    attribute_id INT IDENTITY(1,1) PRIMARY KEY,
+    attribute_name NVARCHAR(100) NOT NULL,
+    attribute_value NVARCHAR(255) NOT NULL,
+    product_id INT NOT NULL,
 
-    FOREIGN KEY (CustomerID) REFERENCES Customer(CustomerID),
-    FOREIGN KEY (StaffID) REFERENCES Staff(StaffID)
+    CONSTRAINT fk_attribute_product FOREIGN KEY (product_id) REFERENCES product(product_id)
+);
+
+-- ========================================
+-- INVENTORY (1-1 WITH PRODUCT)
+-- ========================================
+CREATE TABLE inventory (
+    inventory_id INT IDENTITY(1,1) PRIMARY KEY,
+    quantity_stock INT NOT NULL,
+    product_id INT NOT NULL UNIQUE,
+
+    CONSTRAINT fk_inventory_product FOREIGN KEY (product_id) REFERENCES product(product_id)
+);
+
+-- ========================================
+-- VOUCHER
+-- ========================================
+CREATE TABLE voucher (
+    voucher_id INT IDENTITY(1,1) PRIMARY KEY,
+    code NVARCHAR(50) NOT NULL UNIQUE,
+    discount_value DECIMAL(15,2) NOT NULL
+);
+
+-- ========================================
+-- ORDERS
+-- ========================================
+CREATE TABLE orders (
+    order_id INT IDENTITY(1,1) PRIMARY KEY,
+    order_number NVARCHAR(50) NOT NULL UNIQUE,
+    order_date DATETIME2 NOT NULL,
+    status NVARCHAR(30) NOT NULL,
+    final_total DECIMAL(15,2) NOT NULL,
+    customer_id INT NOT NULL,
+    staff_account_id INT NOT NULL,
+    voucher_id INT NULL,
+
+    CONSTRAINT fk_orders_customer FOREIGN KEY (customer_id) REFERENCES customer(customer_id),
+    CONSTRAINT fk_orders_staff FOREIGN KEY (staff_account_id) REFERENCES staff(account_id),
+    CONSTRAINT fk_orders_voucher FOREIGN KEY (voucher_id) REFERENCES voucher(voucher_id)
+);
+
+-- ========================================
+-- PAYMENT (1-1 WITH ORDER)
+-- ========================================
+CREATE TABLE payment (
+    payment_id INT IDENTITY(1,1) PRIMARY KEY,
+    method NVARCHAR(50) NOT NULL,
+    order_id INT NOT NULL UNIQUE,
+
+    CONSTRAINT fk_payment_order FOREIGN KEY (order_id) REFERENCES orders(order_id)
 );
 
 -- ========================================
 -- ORDER DETAIL
 -- ========================================
-CREATE TABLE OrderDetail (
-    OrderDetailID INT IDENTITY PRIMARY KEY,
-    OrderID INT,
-    ProductID INT,
-    Quantity INT,
-    UnitPrice DECIMAL(15,2),
-    Discount DECIMAL(10,2),
+CREATE TABLE order_detail (
+    order_detail_id INT IDENTITY(1,1) PRIMARY KEY,
+    quantity INT NOT NULL,
+    unit_price DECIMAL(15,2) NOT NULL,
+    order_id INT NOT NULL,
+    product_id INT NOT NULL,
 
-    FOREIGN KEY (OrderID) REFERENCES [Order](OrderID),
-    FOREIGN KEY (ProductID) REFERENCES Product(ProductID)
+    CONSTRAINT fk_order_detail_order FOREIGN KEY (order_id) REFERENCES orders(order_id),
+    CONSTRAINT fk_order_detail_product FOREIGN KEY (product_id) REFERENCES product(product_id)
 );
 
 -- ========================================
--- PAYMENT
+-- IMPORT RECEIPT
 -- ========================================
-CREATE TABLE Payment (
-    PaymentID INT IDENTITY PRIMARY KEY,
-    OrderID INT,
-    PaymentMethod NVARCHAR(50),
-    PaymentDate DATETIME DEFAULT GETDATE(),
-    Amount DECIMAL(15,2),
-    Status NVARCHAR(20),
-    TransactionCode NVARCHAR(100),
+CREATE TABLE import_receipt (
+    receipt_id INT IDENTITY(1,1) PRIMARY KEY,
+    import_date DATETIME2 NOT NULL,
+    total_cost DECIMAL(15,2) NOT NULL,
+    supplier_id INT NOT NULL,
+    staff_account_id INT NOT NULL,
 
-    FOREIGN KEY (OrderID) REFERENCES [Order](OrderID)
+    CONSTRAINT fk_import_receipt_supplier FOREIGN KEY (supplier_id) REFERENCES supplier(supplier_id),
+    CONSTRAINT fk_import_receipt_staff FOREIGN KEY (staff_account_id) REFERENCES staff(account_id)
 );
+
+-- ========================================
+-- IMPORT DETAIL
+-- ========================================
+CREATE TABLE import_detail (
+    detail_id INT IDENTITY(1,1) PRIMARY KEY,
+    quantity INT NOT NULL,
+    import_price DECIMAL(15,2) NOT NULL,
+    receipt_id INT NOT NULL,
+    product_id INT NOT NULL,
+
+    CONSTRAINT fk_import_detail_receipt FOREIGN KEY (receipt_id) REFERENCES import_receipt(receipt_id),
+    CONSTRAINT fk_import_detail_product FOREIGN KEY (product_id) REFERENCES product(product_id)
+);
+GO
+
+-- ========================================
+-- SEED DATA
+-- ========================================
+INSERT INTO account (username, password_hash, full_name, role_name)
+VALUES
+    (N'admin', N'admin123', N'Nguyen Quan Tri', N'ADMIN'),
+    (N'staff01', N'staff123', N'Tran Nhan Vien 1', N'STAFF'),
+    (N'staff02', N'staff123', N'Le Nhan Vien 2', N'STAFF');
+
+INSERT INTO staff (account_id, staff_id, manager_admin_account_id)
+VALUES
+    (1, 1000, NULL),
+    (2, 1001, NULL),
+    (3, 1002, NULL);
+
+INSERT INTO admin (account_id)
+VALUES (1);
+
+UPDATE staff
+SET manager_admin_account_id = 1
+WHERE account_id IN (2, 3);
+
+INSERT INTO customer (customer_name, phone, address)
+VALUES
+    (N'Pham Thi A', N'0909000111', N'Quan 1, TP.HCM'),
+    (N'Hoang Van B', N'0911222333', N'Quan 7, TP.HCM');
+
+INSERT INTO supplier (supplier_name, contact_person, phone, address)
+VALUES
+    (N'Gold Source Ltd', N'Mr. Minh', N'0281234567', N'Binh Thanh, TP.HCM'),
+    (N'Gem Factory', N'Ms. Linh', N'0287654321', N'Thu Duc, TP.HCM');
+
+INSERT INTO category (category_name)
+VALUES
+    (N'Ring'),
+    (N'Necklace');
+
+INSERT INTO product (product_code, product_name, base_price, category_id)
+VALUES
+    (N'R001', N'Nhẫn Vàng 18K', 5500000.00, 1),
+    (N'R002', N'Nhẫn Kim Cương', 12500000.00, 1),
+    (N'N001', N'Dây Chuyền Vàng Trắng', 8900000.00, 2);
+
+INSERT INTO product_attribute (attribute_name, attribute_value, product_id)
+VALUES
+    (N'Material', N'18K Gold', 1),
+    (N'Weight', N'3.2g', 1),
+    (N'Material', N'Diamond + 18K Gold', 2),
+    (N'Stone', N'Natural Diamond', 2),
+    (N'Material', N'White Gold', 3),
+    (N'Length', N'45cm', 3);
+
+INSERT INTO inventory (quantity_stock, product_id)
+VALUES
+    (20, 1),
+    (8, 2),
+    (15, 3);
+
+INSERT INTO voucher (code, discount_value)
+VALUES
+    (N'WELCOME10', 100000.00),
+    (N'VIP500', 500000.00);
+
+INSERT INTO import_receipt (import_date, total_cost, supplier_id, staff_account_id)
+VALUES
+    ('2026-04-01 09:00:00', 80000000.00, 1, 2),
+    ('2026-04-05 14:30:00', 45000000.00, 2, 3);
+
+INSERT INTO import_detail (quantity, import_price, receipt_id, product_id)
+VALUES
+    (15, 4200000.00, 1, 1),
+    (6, 10200000.00, 1, 2),
+    (12, 6900000.00, 2, 3);
+
+INSERT INTO orders (order_number, order_date, status, final_total, customer_id, staff_account_id, voucher_id)
+VALUES
+    (N'ORD-20260410-001', '2026-04-10 10:15:00', N'PAID', 17900000.00, 1, 2, 1),
+    (N'ORD-20260410-002', '2026-04-10 16:40:00', N'PAID', 12500000.00, 2, 3, NULL);
+
+INSERT INTO order_detail (quantity, unit_price, order_id, product_id)
+VALUES
+    (1, 12500000.00, 1, 2),
+    (1, 5500000.00, 1, 1),
+    (1, 12500000.00, 2, 2);
+
+INSERT INTO payment (method, order_id)
+VALUES
+    (N'CASH', 1),
+    (N'BANK_TRANSFER', 2);
+GO
