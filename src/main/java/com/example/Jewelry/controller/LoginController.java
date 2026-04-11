@@ -1,7 +1,6 @@
 package com.example.Jewelry.controller;
 
-import com.example.Jewelry.config.DBConnection;
-import com.example.Jewelry.repository.AccountRepository;
+import com.example.Jewelry.service.AccountService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,15 +8,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.sql.Connection;
-
 @Controller
 public class LoginController {
 
-    private final AccountRepository accountRepository;
+    private final AccountService accountService;
 
-    public LoginController(AccountRepository accountRepository) {
-        this.accountRepository = accountRepository;
+    public LoginController(AccountService accountService) {
+        this.accountService = accountService;
     }
 
     @GetMapping({"/login", "/management/login"})
@@ -29,7 +26,7 @@ public class LoginController {
     public String login(@RequestParam String username,
                         @RequestParam String password,
                         Model model) {
-        boolean isSuccess = accountRepository.login(username, password);
+        boolean isSuccess = accountService.login(username, password);
         if (isSuccess) {
             return "redirect:/management/dashboard";
         }
@@ -52,11 +49,9 @@ public class LoginController {
     @GetMapping("/management/db-test")
     @ResponseBody
     public String dbTest() {
-        try (Connection connection = DBConnection.getInstance().getConnection()) {
-            if (connection != null && !connection.isClosed()) {
-                return "KET NOI DATABASE OK";
-            }
-            return "KET NOI DATABASE THAT BAI: Connection dong";
+        try {
+            long totalAccounts = accountService.count();
+            return "KET NOI DATABASE OK - Accounts: " + totalAccounts;
         } catch (Exception exception) {
             return "KET NOI DATABASE THAT BAI: " + exception.getMessage();
         }
