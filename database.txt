@@ -84,6 +84,7 @@ CREATE TABLE product (
     product_code NVARCHAR(50) NOT NULL UNIQUE,
     product_name NVARCHAR(150) NOT NULL,
     base_price DECIMAL(15,2) NOT NULL,
+    image_url NVARCHAR(500) NULL,
     category_id INT NOT NULL,
 
     CONSTRAINT fk_product_category FOREIGN KEY (category_id) REFERENCES category(category_id)
@@ -230,11 +231,11 @@ VALUES
     (N'Ring'),
     (N'Necklace');
 
-INSERT INTO product (product_code, product_name, base_price, category_id)
+INSERT INTO product (product_code, product_name, base_price, image_url, category_id)
 VALUES
-    (N'R001', N'Nhẫn Vàng 18K', 5500000.00, 1),
-    (N'R002', N'Nhẫn Kim Cương', 12500000.00, 1),
-    (N'N001', N'Dây Chuyền Vàng Trắng', 8900000.00, 2);
+    (N'R001', N'Nhẫn Vàng 18K', 5500000.00, N'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=300&q=80', 1),
+    (N'R002', N'Nhẫn Kim Cương', 12500000.00, N'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=300&q=80', 1),
+    (N'N001', N'Dây Chuyền Vàng Trắng', 8900000.00, N'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=300&q=80', 2);
 
 INSERT INTO product_attribute (attribute_name, attribute_value, product_id)
 VALUES

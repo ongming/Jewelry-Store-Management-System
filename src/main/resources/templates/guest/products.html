@@ -28,10 +28,16 @@
                 </select>
 
                 <label for="minPrice">Giá từ</label>
-                <input id="minPrice" name="minPrice" type="number" placeholder="5000000">
+                <input id="minPrice" name="minPrice" type="number" placeholder="5000000" th:value="${minPrice}">
 
                 <label for="maxPrice">Giá đến</label>
-                <input id="maxPrice" name="maxPrice" type="number" placeholder="15000000">
+                <input id="maxPrice" name="maxPrice" type="number" placeholder="15000000" th:value="${maxPrice}">
+
+                <label for="sort">Sắp xếp</label>
+                <select id="sort" name="sort">
+                    <option value="priceAsc" th:selected="${sort == 'priceAsc'}">Giá tăng dần</option>
+                    <option value="priceDesc" th:selected="${sort == 'priceDesc'}">Giá giảm dần</option>
+                </select>
 
                 <button type="submit" class="btn-gold">Áp dụng</button>
             </form>
@@ -46,6 +52,26 @@
                     <a th:href="@{/guest/product-detail/{id}(id=${item.id})}">Xem chi tiết</a>
                 </div>
             </article>
+        </div>
+
+        <p class="empty-state" th:if="${#lists.isEmpty(products)}">Không có kết quả phù hợp với bộ lọc hiện tại.</p>
+
+        <div class="pagination" th:if="${totalPages > 1}">
+            <a th:if="${hasPrev}"
+               th:href="@{/guest/products(category=${selectedCategory},minPrice=${minPrice},maxPrice=${maxPrice},sort=${sort},page=${currentPage - 1})}">
+                Trang trước
+            </a>
+            <span th:each="item : ${pageItems}">
+                <span class="dots" th:if="${item.ellipsis}">...</span>
+                <a th:if="${!item.ellipsis}"
+                   th:href="@{/guest/products(category=${selectedCategory},minPrice=${minPrice},maxPrice=${maxPrice},sort=${sort},page=${item.page})}"
+                   th:classappend="${item.active} ? 'active-page' : ''"
+                   th:text="${item.page}">1</a>
+            </span>
+            <a th:if="${hasNext}"
+               th:href="@{/guest/products(category=${selectedCategory},minPrice=${minPrice},maxPrice=${maxPrice},sort=${sort},page=${currentPage + 1})}">
+                Trang sau
+            </a>
         </div>
     </div>
 </section>

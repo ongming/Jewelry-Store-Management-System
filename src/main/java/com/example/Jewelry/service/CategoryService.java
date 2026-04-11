@@ -18,4 +18,10 @@ public interface CategoryService {
     boolean existsById(Integer id);
 
     long count();
+
+    Category createCategory(String categoryName);
+
+    Category updateCategory(Integer categoryId, String categoryName);
+
+    void deleteCategory(Integer categoryId);
 }

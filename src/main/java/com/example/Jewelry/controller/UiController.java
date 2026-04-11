@@ -1,5 +1,9 @@
 package com.example.Jewelry.controller;
 
+import com.example.Jewelry.model.entity.Product;
+import com.example.Jewelry.model.entity.ProductAttribute;
+import com.example.Jewelry.service.CategoryService;
+import com.example.Jewelry.service.ProductService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -7,34 +11,33 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Controller
 public class UiController {
 
-    private static final List<ProductView> PRODUCTS = List.of(
-            new ProductView(1L, "Nhẫn", "Nhẫn Bloom Vĩnh Cửu", 12500000,
-                    "Viên đá chủ đạo nổi bật với thiết kế quầng hoa thanh lịch.", "Vàng trắng 18K", "4.5g",
-                    "https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=1200&q=80"),
-            new ProductView(2L, "Dây chuyền", "Dây chuyền Ngọc Noir", 9800000,
-                    "Ngọc trai nước ngọt tinh tế, phù hợp phong cách hiện đại.", "Ngọc trai và vàng 14K", "8.1g",
-                    "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=1200&q=80"),
-            new ProductView(3L, "Lắc tay", "Lắc tay Maison", 7600000,
-                    "Lắc tay vàng dáng khối, bề mặt bóng tạo vẻ sang trọng.", "Vàng vermeil 18K", "13.0g",
-                    "https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=1200&q=80"),
-            new ProductView(4L, "Bông tai", "Bông tai Luna", 5400000,
-                    "Dáng thả mềm mại lấy cảm hứng từ thời trang cao cấp.", "Vàng hồng 14K", "3.2g",
-                    "https://images.unsplash.com/photo-1635767798638-3e25273a8236?auto=format&fit=crop&w=1200&q=80"),
-            new ProductView(5L, "Nhẫn", "Nhẫn Halo Imperial", 15400000,
-                    "Kiểu dáng cổ điển, viên đá nhỏ được đính chính xác.", "Bạch kim", "5.8g",
-                    "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=1200&q=80")
-    );
+    private static final int PRODUCTS_PAGE_SIZE = 6;
+
+    private final ProductService productService;
+    private final CategoryService categoryService;
+
+    public UiController(ProductService productService, CategoryService categoryService) {
+        this.productService = productService;
+        this.categoryService = categoryService;
+    }
 
     @GetMapping({"/", "/guest/home"})
     public String home(Model model) {
-        model.addAttribute("featuredProducts", PRODUCTS.stream().limit(4).toList());
-        model.addAttribute("categories", List.of("Nhẫn", "Dây chuyền", "Lắc tay", "Bông tai"));
+        List<ProductView> productViews = productService.findAll().stream()
+            .map(this::toProductView)
+            .toList();
+        model.addAttribute("featuredProducts", productViews.stream().limit(4).toList());
+        model.addAttribute("categories", categoryService.findAll().stream()
+            .map(category -> category.getCategoryName())
+            .toList());
         return "guest/home";
     }
 
@@ -42,8 +45,12 @@ public class UiController {
     public String products(@RequestParam(required = false) String category,
                            @RequestParam(required = false) Integer minPrice,
                            @RequestParam(required = false) Integer maxPrice,
+                           @RequestParam(defaultValue = "priceAsc") String sort,
+                           @RequestParam(defaultValue = "1") Integer page,
                            Model model) {
-        List<ProductView> filtered = new ArrayList<>(PRODUCTS);
+        List<ProductView> filtered = new ArrayList<>(productService.findAll().stream()
+            .map(this::toProductView)
+            .toList());
         if (category != null && !category.isBlank()) {
             filtered.removeIf(product -> !product.category().equalsIgnoreCase(category));
         }
@@ -54,15 +61,39 @@ public class UiController {
             filtered.removeIf(product -> product.price() > maxPrice);
         }
 
-        model.addAttribute("products", filtered);
+        if ("priceDesc".equalsIgnoreCase(sort)) {
+            filtered.sort(Comparator.comparingInt(ProductView::price).reversed());
+        } else {
+            filtered.sort(Comparator.comparingInt(ProductView::price));
+            sort = "priceAsc";
+        }
+
+        int totalItems = filtered.size();
+        int totalPages = Math.max(1, (int) Math.ceil((double) totalItems / PRODUCTS_PAGE_SIZE));
+        int currentPage = Math.max(1, Math.min(page, totalPages));
+        int fromIndex = (currentPage - 1) * PRODUCTS_PAGE_SIZE;
+        int toIndex = Math.min(fromIndex + PRODUCTS_PAGE_SIZE, totalItems);
+        List<ProductView> pageItems = filtered.subList(fromIndex, toIndex);
+
+        model.addAttribute("products", pageItems);
         model.addAttribute("selectedCategory", category == null ? "" : category);
-        model.addAttribute("categories", List.of("Nhẫn", "Dây chuyền", "Lắc tay", "Bông tai"));
+        model.addAttribute("categories", categoryService.findAll().stream()
+            .map(cat -> cat.getCategoryName())
+            .collect(Collectors.toList()));
+        model.addAttribute("minPrice", minPrice);
+        model.addAttribute("maxPrice", maxPrice);
+        model.addAttribute("sort", sort);
+        model.addAttribute("currentPage", currentPage);
+        model.addAttribute("totalPages", totalPages);
+        model.addAttribute("hasPrev", currentPage > 1);
+        model.addAttribute("hasNext", currentPage < totalPages);
+        model.addAttribute("pageItems", buildPageItems(currentPage, totalPages));
         return "guest/products";
     }
 
     @GetMapping("/guest/product-detail/{id}")
-    public String productDetail(@PathVariable Long id, Model model) {
-        Optional<ProductView> product = PRODUCTS.stream().filter(item -> item.id().equals(id)).findFirst();
+    public String productDetail(@PathVariable Integer id, Model model) {
+        Optional<ProductView> product = productService.findById(id).map(this::toProductView);
         if (product.isEmpty()) {
             return "redirect:/guest/products";
         }
@@ -72,14 +103,23 @@ public class UiController {
 
     @GetMapping("/guest/cart")
     public String cart(Model model) {
-        model.addAttribute("cartItems", PRODUCTS.stream().limit(2).toList());
-        model.addAttribute("totalPrice", PRODUCTS.stream().limit(2).mapToInt(ProductView::price).sum());
+        List<ProductView> cartItems = productService.findAll().stream()
+            .map(this::toProductView)
+            .limit(2)
+            .toList();
+        model.addAttribute("cartItems", cartItems);
+        model.addAttribute("totalPrice", cartItems.stream().mapToInt(ProductView::price).sum());
         return "guest/cart";
     }
 
     @GetMapping("/guest/checkout")
     public String checkout(Model model) {
-        model.addAttribute("orderTotal", PRODUCTS.stream().limit(2).mapToInt(ProductView::price).sum());
+        int orderTotal = productService.findAll().stream()
+            .map(this::toProductView)
+            .limit(2)
+            .mapToInt(ProductView::price)
+            .sum();
+        model.addAttribute("orderTotal", orderTotal);
         return "guest/checkout";
     }
 
@@ -101,5 +141,97 @@ public class UiController {
     }
 
     public record OrderView(String code, String customer, String status, int amount) {
+    }
+
+    private ProductView toProductView(Product product) {
+        String categoryName = product.getCategory() != null ? product.getCategory().getCategoryName() : "Khác";
+        String imageUrl = (product.getImageUrl() == null || product.getImageUrl().isBlank())
+            ? "https://placehold.co/800x600?text=No+Image"
+            : product.getImageUrl();
+
+        String description = readAttribute(product, "Description", "Mo ta", "Mô tả")
+            .orElse("Sản phẩm trang sức cao cấp.");
+        String material = readAttribute(product, "Material", "Chat lieu", "Chất liệu")
+            .orElse("Đang cập nhật");
+        String weight = readAttribute(product, "Weight", "Trong luong", "Trọng lượng")
+            .orElse("Đang cập nhật");
+
+        return new ProductView(
+            (long) product.getProductId(),
+            categoryName,
+            product.getProductName(),
+            product.getBasePrice().intValue(),
+            description,
+            material,
+            weight,
+            imageUrl
+        );
+    }
+
+    private Optional<String> readAttribute(Product product, String... names) {
+        if (product.getAttributes() == null || product.getAttributes().isEmpty()) {
+            return Optional.empty();
+        }
+
+        for (ProductAttribute attribute : product.getAttributes()) {
+            if (attribute.getAttributeName() == null) {
+                continue;
+            }
+            for (String name : names) {
+                if (attribute.getAttributeName().equalsIgnoreCase(name) && attribute.getAttributeValue() != null) {
+                    return Optional.of(attribute.getAttributeValue());
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    private List<PageItem> buildPageItems(int currentPage, int totalPages) {
+        List<PageItem> items = new ArrayList<>();
+        if (totalPages <= 7) {
+            for (int page = 1; page <= totalPages; page++) {
+                items.add(PageItem.page(page, page == currentPage));
+            }
+            return items;
+        }
+
+        items.add(PageItem.page(1, currentPage == 1));
+
+        if (currentPage > 3) {
+            items.add(PageItem.ofEllipsis());
+        }
+
+        int start = Math.max(2, currentPage - 1);
+        int end = Math.min(totalPages - 1, currentPage + 1);
+
+        if (currentPage <= 3) {
+            start = 2;
+            end = 4;
+        }
+        if (currentPage >= totalPages - 2) {
+            start = totalPages - 3;
+            end = totalPages - 1;
+        }
+
+        for (int page = start; page <= end; page++) {
+            items.add(PageItem.page(page, page == currentPage));
+        }
+
+        if (currentPage < totalPages - 2) {
+            items.add(PageItem.ofEllipsis());
+        }
+
+        items.add(PageItem.page(totalPages, currentPage == totalPages));
+        return items;
+    }
+
+    public record PageItem(Integer page, boolean active, boolean ellipsis) {
+        public static PageItem page(int page, boolean active) {
+            return new PageItem(page, active, false);
+        }
+
+        public static PageItem ofEllipsis() {
+            return new PageItem(null, false, true);
+        }
     }
 }

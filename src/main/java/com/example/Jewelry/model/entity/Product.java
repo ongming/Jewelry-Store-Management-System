@@ -35,6 +35,9 @@ public class Product {
     @Column(name = "base_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal basePrice;
 
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
@@ -91,6 +94,14 @@ public class Product {
 
     public void setBasePrice(BigDecimal basePrice) {
         this.basePrice = basePrice;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public Category getCategory() {
