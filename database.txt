@@ -241,10 +241,12 @@ INSERT INTO product_attribute VALUES
 
 -- PRODUCT IMAGE
 INSERT INTO product_image VALUES
-(1, N'https://images.unsplash.com/photo-1605100804763', 1, 1),
-(1, N'https://images.unsplash.com/photo-1588444650733', 0, 2),
-(2, N'https://images.unsplash.com/photo-1515562141207', 1, 1),
-(3, https://cdn.pnj.io/images/detailed/284/sp-gd0000y013147-day-chuyen-nam-vang-99-mancode-by-pnj-uy-ma-kim-linh-100.png', 1, 1);
+(1, N'https://cdn.pnj.io/images/detailed/181/sp-GN0000Y000391-nhan-cuoi-nam-vang-18k-pnj-1.png', 1, 1),
+(1, N'https://cdn.pnj.io/images/detailed/181/sp-GN0000Y000391-nhan-cuoi-nam-vang-18k-pnj-2.png', 0, 2),
+(2, N'https://cdn.pnj.io/images/detailed/290/sp-gvddddw001279-vong-tay-kim-cuong-vang-trang-585-14k-pnj-timeless-diamond-01.png', 1, 1),
+(2, N'https://cdn.pnj.io/images/detailed/290/sp-gvddddw001279-vong-tay-kim-cuong-vang-trang-585-14k-pnj-timeless-diamond-02.png', 0, 2),
+(3, N'https://cdn.pnj.io/images/detailed/284/sp-gd0000y013147-day-chuyen-nam-vang-99-mancode-by-pnj-uy-ma-kim-linh-100.png', 1, 1),
+(3, N'https://cdn.pnj.io/images/detailed/284/sp-gd0000y013147-day-chuyen-nam-vang-99-mancode-by-pnj-uy-ma-kim-linh-200.png', 0, 2);
 
 -- INVENTORY
 INSERT INTO inventory VALUES
