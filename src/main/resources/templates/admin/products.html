@@ -9,17 +9,10 @@
 </head>
 <body>
 <div class="admin-layout">
-    <aside class="admin-sidebar">
-        <h2>Maison Admin</h2>
-        <nav>
-            <a th:href="@{/admin/dashboard}">Tổng quan</a>
-            <a th:href="@{/admin/products}">Sản phẩm</a>
-            <a th:href="@{/admin/categories}">Danh mục</a>
-        </nav>
-    </aside>
+    <aside th:replace="~{fragments/header :: managementSidebar('products')}"></aside>
 
     <main class="admin-main">
-        <div th:replace="~{fragments/header :: adminHeader}"></div>
+        <header th:replace="~{fragments/header :: managementTopbar('Quản lý sản phẩm')}"></header>
 
         <section class="catalog-panel">
             <div class="catalog-panel__top">

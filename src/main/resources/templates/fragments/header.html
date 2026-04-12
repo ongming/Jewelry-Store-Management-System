@@ -13,12 +13,30 @@
     </div>
 </header>
 
-<header th:fragment="adminHeader" class="admin-topbar">
+<aside th:fragment="managementSidebar(activePage)" class="admin-sidebar">
+    <h2>Quản trị trang sức</h2>
+    <p class="sidebar-role" th:text="${session.roleName == 'ADMIN'} ? 'Quản trị viên' : 'Nhân viên'">Nhân viên</p>
+    <nav th:if="${session.roleName == 'ADMIN'}">
+        <a th:classappend="${activePage == 'dashboard'} ? 'active' : ''" th:href="@{/admin/dashboard}"><i class="fa-solid fa-house"></i><span>Tổng quan</span></a>
+        <a th:classappend="${activePage == 'products'} ? 'active' : ''" th:href="@{/admin/products}"><i class="fa-solid fa-box"></i><span>Sản phẩm</span></a>
+        <a th:classappend="${activePage == 'categories'} ? 'active' : ''" th:href="@{/admin/categories}"><i class="fa-solid fa-table-cells-large"></i><span>Danh mục</span></a>
+        <a th:classappend="${activePage == 'staff-management'} ? 'active' : ''" th:href="@{/admin/staff-management}"><i class="fa-solid fa-users"></i><span>Nhân sự</span></a>
+        <a th:href="@{/staff/dashboard}"><i class="fa-solid fa-display"></i><span>Xem giao diện nhân viên</span></a>
+    </nav>
+    <nav th:if="${session.roleName != 'ADMIN'}">
+        <a th:classappend="${activePage == 'staff-dashboard'} ? 'active' : ''" th:href="@{/staff/dashboard}"><i class="fa-solid fa-gauge"></i><span>Bảng điều khiển</span></a>
+        <a th:classappend="${activePage == 'staff-products'} ? 'active' : ''" th:href="@{/staff/products}"><i class="fa-solid fa-box"></i><span>Xem sản phẩm</span></a>
+        <a th:classappend="${activePage == 'staff-orders'} ? 'active' : ''" th:href="@{/staff/orders}"><i class="fa-solid fa-file-invoice-dollar"></i><span>Tạo đơn hàng</span></a>
+        <a th:classappend="${activePage == 'staff-customers'} ? 'active' : ''" th:href="@{/staff/customers}"><i class="fa-solid fa-user-group"></i><span>Khách hàng</span></a>
+    </nav>
+</aside>
+
+<header th:fragment="managementTopbar(title)" class="admin-topbar">
     <div class="admin-topbar-inner">
-        <h1>Bảng điều khiển quản trị</h1>
+        <h1 th:text="${title}">Bảng điều khiển</h1>
         <div class="admin-actions">
-            <a href="#">Hồ sơ</a>
-            <a th:href="@{/login}">Đăng xuất</a>
+            <span th:text="${session.fullName}">Tài khoản</span>
+            <a th:href="@{/logout}">Đăng xuất</a>
         </div>
     </div>
 </header>

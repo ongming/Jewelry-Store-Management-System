@@ -9,6 +9,8 @@ public interface AccountService {
 
     Optional<Account> findById(Integer id);
 
+    Optional<Account> findByUsername(String username);
+
     List<Account> findAll();
 
     Account save(Account entity);
@@ -19,5 +21,5 @@ public interface AccountService {
 
     long count();
 
-    boolean login(String username, String password);
+    Optional<Account> login(String username, String password);
 }

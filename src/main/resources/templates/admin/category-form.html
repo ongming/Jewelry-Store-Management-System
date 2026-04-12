@@ -9,17 +9,10 @@
 </head>
 <body>
 <div class="admin-layout">
-    <aside class="admin-sidebar">
-        <h2>Maison Admin</h2>
-        <nav>
-            <a th:href="@{/admin/dashboard}">Tổng quan</a>
-            <a th:href="@{/admin/products}">Sản phẩm</a>
-            <a th:href="@{/admin/categories}">Danh mục</a>
-        </nav>
-    </aside>
+    <aside th:replace="~{fragments/header :: managementSidebar('categories')}"></aside>
 
     <main class="admin-main">
-        <div th:replace="~{fragments/header :: adminHeader}"></div>
+        <header th:replace="~{fragments/header :: managementTopbar(${isEdit} ? 'Cập nhật danh mục' : 'Thêm danh mục')}"></header>
 
         <section class="catalog-panel form-panel">
             <h2 th:text="${isEdit} ? 'Cập nhật danh mục' : 'Thêm danh mục mới'">Danh mục</h2>
@@ -29,7 +22,7 @@
             <form th:action="${isEdit} ? @{/admin/categories/{id}(id=${category.categoryId})} : @{/admin/categories}" method="post">
                 <label for="categoryName">Tên danh mục</label>
                 <input id="categoryName" name="categoryName" type="text" required
-                      th:value="${isEdit ? category.categoryName : ''}">
+                       th:value="${isEdit ? category.categoryName : ''}">
 
                 <div class="form-actions">
                     <button class="btn btn-primary" type="submit" th:text="${isEdit} ? 'Lưu thay đổi' : 'Tạo danh mục'"></button>

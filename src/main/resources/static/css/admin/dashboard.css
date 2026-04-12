@@ -1,40 +1,50 @@
-@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600&family=Playfair+Display:wght@600;700&display=swap");
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css');
 
 :root {
-    --bg: #0e0e0e;
-    --panel: #171717;
-    --line: rgba(200, 168, 106, 0.22);
-    --gold: #c8a86a;
+    --bg: #0f0f0f;
+    --panel: #1a1a1a;
+    --line: rgba(212, 175, 55, 0.24);
+    --gold: #d4af37;
     --text: #efefef;
 }
 
 * {
     box-sizing: border-box;
+    font-family: Arial, sans-serif;
 }
 
 body {
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font-family: "Be Vietnam Pro", Arial, sans-serif;
 }
+
+/* ...existing styles... */
 
 .admin-layout {
     display: grid;
-    grid-template-columns: 260px 1fr;
+    grid-template-columns: 240px 1fr;
     min-height: 100vh;
 }
 
 .admin-sidebar {
     border-right: 1px solid var(--line);
-    background: #111111;
-    padding: 24px 18px;
+    background: #0f0f0f;
+    padding: 24px 14px;
+    min-height: 100vh;
 }
 
 .admin-sidebar h2 {
-    margin: 0 0 20px;
+    margin: 0 0 10px;
     color: var(--gold);
-    font-family: "Playfair Display", serif;
+    font-family: Arial, sans-serif;
+    font-size: 1.15rem;
+}
+
+.sidebar-role {
+    margin: 0 0 18px;
+    color: #9f9f9f;
+    font-size: 0.9rem;
 }
 
 .admin-sidebar nav {
@@ -43,17 +53,32 @@ body {
 }
 
 .admin-sidebar nav a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
     border: 1px solid transparent;
-    border-radius: 10px;
-    padding: 10px 12px;
-    color: #d8d8d8;
-    transition: all 0.25s ease;
+    border-radius: 8px;
+    color: #ccc;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.admin-sidebar nav a i {
+    width: 18px;
+    text-align: center;
 }
 
 .admin-sidebar nav a:hover {
-    border-color: var(--line);
+    background: rgba(212, 175, 55, 0.1);
     color: var(--gold);
-    background: rgba(200, 168, 106, 0.08);
+    transform: translateX(2px) scale(1.01);
+}
+
+.admin-sidebar nav a.active {
+    background: var(--gold);
+    color: #000;
+    font-weight: 700;
 }
 
 .admin-main {
@@ -77,7 +102,7 @@ body {
 }
 
 .admin-topbar h1 {
-    font-family: "Playfair Display", serif;
+    font-family: Arial, sans-serif;
     margin: 0;
 }
 
@@ -88,6 +113,7 @@ body {
 
 .admin-actions a {
     color: var(--gold);
+    text-decoration: none;
 }
 
 .stats-grid {
@@ -127,7 +153,7 @@ body {
 
 .orders-section h2 {
     margin-top: 0;
-    font-family: "Playfair Display", serif;
+    font-family: Arial, sans-serif;
 }
 
 table {
@@ -155,10 +181,10 @@ th {
     .admin-sidebar {
         border-right: none;
         border-bottom: 1px solid var(--line);
+        min-height: auto;
     }
 
     .stats-grid {
         grid-template-columns: 1fr;
     }
 }
-

@@ -1,94 +1,81 @@
-Create a complete login feature for a Jewelry Store Management System using Java Spring Boot, Thymeleaf, HTML, and CSS.
+You are a senior frontend + backend developer.
 
-========================================
-PROJECT STRUCTURE
-=================
+Refactor my STAFF dashboard UI.
 
-* templates/management/login.html
-* static/css/management/login.css
-* java/com/.../controller/LoginController.java
-* java/com/.../repository/AccountRepository.java
-* java/com/.../config/DBConnection.java
+CURRENT PROBLEM:
+- All features (product list, create order, customer management) are in ONE page.
+- It looks messy and not user-friendly.
 
-========================================
-DATABASE
-========
+GOAL:
+- Split each feature into separate pages.
 
-Table: Account
+========================
+1. CREATE SEPARATE PAGES
+========================
 
-* Username
-* PasswordHash
-* Status
+Create the following pages:
 
-========================================
-REQUIREMENTS
-============
+1. staff/dashboard.html
+   - Show summary only:
+     + Today orders
+     + Revenue
+   - NO forms here
 
-1. LOGIN UI (Thymeleaf)
+2. staff/products.html
+   - Show product list (read-only)
 
-* Username input
-* Password input
-* Submit form POST /login
-* Show error message if login fails
+3. staff/orders.html
+   - Create new order
+   - Order form only
 
-========================================
-2. DATABASE CONNECTION (MANDATORY)
-==================================
+4. staff/customers.html
+   - Customer list
+   - Add new customer form
 
-* Implement DBConnection using Singleton Pattern
+========================
+2. SIDEBAR NAVIGATION
+========================
 
-Requirements:
+Update sidebar:
 
-* private static instance
-* private constructor
-* public static getInstance()
-* method getConnection()
+- Dashboard → /staff/dashboard
+- Xem sản phẩm → /staff/products
+- Tạo đơn hàng → /staff/orders
+- Khách hàng → /staff/customers
 
-Use SQL Server:
-jdbc:sqlserver://localhost:1433;databaseName=JewelryStoreDB
+Each menu item must navigate to a DIFFERENT page.
 
-========================================
-3. REPOSITORY LAYER
-===================
+========================
+3. CONTROLLER UPDATE (SPRING BOOT)
+========================
 
-Create AccountRepository:
+Create separate routes:
 
-Method:
-boolean login(String username, String password)
+@GetMapping("/staff/dashboard") → return "staff/dashboard"
+@GetMapping("/staff/products") → return "staff/products"
+@GetMapping("/staff/orders") → return "staff/orders"
+@GetMapping("/staff/customers") → return "staff/customers"
 
-Logic:
+========================
+4. REMOVE DUPLICATION
+========================
 
-* Use DBConnection.getInstance().getConnection()
+- Remove product table from dashboard
+- Remove order form from dashboard
+- Move them to correct pages
 
-* Query:
-  SELECT * FROM Account
-  WHERE Username = ? AND PasswordHash = ? AND Status = 'ACTIVE'
+========================
+5. UI IMPROVEMENT
+========================
 
-* Return true if found, otherwise false
+- Keep same theme (dark + gold)
+- Use clean card layout
+- Add page title for each page
 
-========================================
-4. CONTROLLER
-=============
+========================
+6. OUTPUT
+========================
 
-Create LoginController:
-
-GET /login:
-
-* return login page
-
-POST /login:
-
-* call AccountRepository.login()
-* if success:
-  redirect to /management/dashboard
-* if fail:
-  return login page with error message
-
-========================================
-5. GOAL
-=======
-
-* Fully working login system
-* Must connect to database
-* Must use Singleton Pattern for DB connection
-* Clean structure: Controller → Repository → DBConnection
+- Show updated folder structure
+- Show updated controller code
+- Provide sample HTML for each page

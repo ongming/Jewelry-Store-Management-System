@@ -1,18 +1,32 @@
 package com.example.Jewelry.controller;
 
+import com.example.Jewelry.model.entity.Customer;
+import com.example.Jewelry.model.entity.Order;
 import com.example.Jewelry.model.entity.Product;
 import com.example.Jewelry.model.entity.ProductAttribute;
+import com.example.Jewelry.model.entity.Staff;
 import com.example.Jewelry.service.CategoryService;
+import com.example.Jewelry.service.CustomerService;
+import com.example.Jewelry.service.OrderService;
 import com.example.Jewelry.service.ProductService;
+import com.example.Jewelry.service.StaffService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -23,10 +37,20 @@ public class UiController {
 
     private final ProductService productService;
     private final CategoryService categoryService;
+    private final CustomerService customerService;
+    private final OrderService orderService;
+    private final StaffService staffService;
 
-    public UiController(ProductService productService, CategoryService categoryService) {
+    public UiController(ProductService productService,
+                        CategoryService categoryService,
+                        CustomerService customerService,
+                        OrderService orderService,
+                        StaffService staffService) {
         this.productService = productService;
         this.categoryService = categoryService;
+        this.customerService = customerService;
+        this.orderService = orderService;
+        this.staffService = staffService;
     }
 
     @GetMapping({"/", "/guest/home"})
@@ -134,6 +158,100 @@ public class UiController {
                 new OrderView("OD-2403", "Lê Hoàng Gia", "Chờ xác nhận", 5_400_000)
         ));
         return "admin/dashboard";
+    }
+
+    @GetMapping("/staff/dashboard")
+    public String staffDashboard(Model model) {
+        addStaffSummary(model);
+        return "staff/dashboard";
+    }
+
+    @GetMapping("/staff/products")
+    public String staffProducts(Model model) {
+        model.addAttribute("products", productService.findAll());
+        return "staff/products";
+    }
+
+    @GetMapping("/staff/orders")
+    public String staffOrders(Model model) {
+        model.addAttribute("customers", customerService.findAll());
+        return "staff/orders";
+    }
+
+    @GetMapping("/staff/customers")
+    public String staffCustomers(Model model) {
+        model.addAttribute("customers", customerService.findAll());
+        return "staff/customers";
+    }
+
+    @PostMapping("/staff/customers")
+    public String createCustomer(@RequestParam String customerName,
+                                 @RequestParam(required = false) String phone,
+                                 @RequestParam(required = false) String address,
+                                 RedirectAttributes redirectAttributes) {
+        Customer customer = new Customer();
+        customer.setCustomerName(customerName.trim());
+        customer.setPhone(phone == null ? null : phone.trim());
+        customer.setAddress(address == null ? null : address.trim());
+        customerService.save(customer);
+        redirectAttributes.addFlashAttribute("success", "Đã thêm khách hàng mới.");
+        return "redirect:/staff/customers";
+    }
+
+    @PostMapping("/staff/orders")
+    public String createOrder(@RequestParam Integer customerId,
+                              @RequestParam BigDecimal finalTotal,
+                              @RequestParam(defaultValue = "PENDING") String status,
+                              HttpSession session,
+                              RedirectAttributes redirectAttributes) {
+        Integer accountId = (Integer) session.getAttribute("accountId");
+        if (accountId == null) {
+            redirectAttributes.addFlashAttribute("error", "Phiên đăng nhập đã hết hạn.");
+            return "redirect:/login";
+        }
+
+        Staff staff = staffService.findById(accountId).orElse(null);
+        if (staff == null) {
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy nhân viên đang đăng nhập.");
+            return "redirect:/staff/orders";
+        }
+
+        Customer customer = customerService.findById(customerId).orElse(null);
+        if (customer == null) {
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy khách hàng.");
+            return "redirect:/staff/orders";
+        }
+
+        Order order = new Order();
+        order.setOrderNumber("ORD-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
+        order.setOrderDate(LocalDateTime.now());
+        order.setStatus(status == null || status.isBlank() ? "PENDING" : status.trim().toUpperCase(Locale.ROOT));
+        order.setFinalTotal(finalTotal);
+        order.setCustomer(customer);
+        order.setStaff(staff);
+        orderService.save(order);
+
+        redirectAttributes.addFlashAttribute("success", "Đã tạo đơn hàng mới.");
+        return "redirect:/staff/orders";
+    }
+
+    private void addStaffSummary(Model model) {
+        List<Order> allOrders = orderService.findAll();
+        LocalDate today = LocalDate.now();
+        long todayOrders = allOrders.stream()
+            .filter(order -> order.getOrderDate() != null)
+            .filter(order -> order.getOrderDate().toLocalDate().isEqual(today))
+            .count();
+
+        BigDecimal revenueToday = allOrders.stream()
+            .filter(order -> order.getOrderDate() != null)
+            .filter(order -> order.getOrderDate().toLocalDate().isEqual(today))
+            .map(Order::getFinalTotal)
+            .filter(java.util.Objects::nonNull)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        model.addAttribute("todayOrders", todayOrders);
+        model.addAttribute("todayRevenue", revenueToday);
     }
 
     public record ProductView(Long id, String category, String productName, int price,

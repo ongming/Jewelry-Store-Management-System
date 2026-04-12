@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tạo đơn hàng</title>
+    <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/catalog.css}">
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{fragments/header :: managementSidebar('staff-orders')}"></aside>
+
+    <main class="admin-main">
+        <header th:replace="~{fragments/header :: managementTopbar('Tạo đơn hàng')}"></header>
+
+        <p class="alert success" th:if="${success}" th:text="${success}"></p>
+        <p class="alert error" th:if="${error}" th:text="${error}"></p>
+
+        <section class="catalog-panel form-panel">
+            <div class="catalog-panel__top">
+                <h2>Tạo đơn hàng mới</h2>
+            </div>
+
+            <form th:action="@{/staff/orders}" method="post">
+                <label for="customerId">Khách hàng</label>
+                <select id="customerId" name="customerId" required>
+                    <option value="">-- Chọn khách hàng --</option>
+                    <option th:each="customer : ${customers}" th:value="${customer.customerId}" th:text="${customer.customerName}"></option>
+                </select>
+
+                <label for="finalTotal">Tổng tiền</label>
+                <input id="finalTotal" name="finalTotal" type="number" min="0" step="0.01" required>
+
+                <label for="status">Trạng thái</label>
+                <select id="status" name="status">
+                    <option value="PENDING">Chờ xác nhận</option>
+                    <option value="PAID">Đã thanh toán</option>
+                    <option value="CANCELLED">Đã hủy</option>
+                </select>
+
+                <div class="form-actions">
+                    <button class="btn btn-primary" type="submit">Tạo đơn hàng</button>
+                </div>
+            </form>
+        </section>
+    </main>
+</div>
+</body>
+</html>
+

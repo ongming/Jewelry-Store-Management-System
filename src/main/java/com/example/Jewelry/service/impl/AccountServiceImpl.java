@@ -23,6 +23,11 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    public Optional<Account> findByUsername(String username) {
+        return accountRepository.findByUsername(username);
+    }
+
+    @Override
     public List<Account> findAll() {
         return accountRepository.findAll();
     }
@@ -48,7 +53,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public boolean login(String username, String password) {
-        return accountRepository.findByUsernameAndPasswordHash(username, password).isPresent();
+    public Optional<Account> login(String username, String password) {
+        return accountRepository.findByUsernameAndPasswordHash(username, password);
     }
 }

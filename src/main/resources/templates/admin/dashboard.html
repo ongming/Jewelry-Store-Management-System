@@ -8,22 +8,10 @@
 </head>
 <body>
 <div class="admin-layout">
-    <aside class="admin-sidebar">
-        <h2>Maison Admin</h2>
-        <nav>
-            <a th:href="@{/admin/dashboard}">Tổng quan</a>
-            <a th:href="@{/admin/products}">Sản phẩm</a>
-            <a th:href="@{/admin/categories}">Danh mục</a>
-            <a href="#">Đơn hàng</a>
-            <a href="#">Khách hàng</a>
-            <a href="#">Tồn kho</a>
-            <a href="#">Nhà cung cấp</a>
-            <a href="#">Nhân viên/Quản trị</a>
-        </nav>
-    </aside>
+    <aside th:replace="~{fragments/header :: managementSidebar('dashboard')}"></aside>
 
     <main class="admin-main">
-        <div th:replace="~{fragments/header :: adminHeader}"></div>
+        <header th:replace="~{fragments/header :: managementTopbar('Bảng điều khiển quản trị')}"></header>
 
         <section class="stats-grid">
             <article>

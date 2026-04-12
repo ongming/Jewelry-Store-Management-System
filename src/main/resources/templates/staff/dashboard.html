@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng điều khiển nhân viên</title>
+    <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/catalog.css}">
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{fragments/header :: managementSidebar('staff-dashboard')}"></aside>
+
+    <main class="admin-main">
+        <header th:replace="~{fragments/header :: managementTopbar('Bảng điều khiển nhân viên')}"></header>
+
+        <p class="alert success" th:if="${success}" th:text="${success}"></p>
+        <p class="alert error" th:if="${error}" th:text="${error}"></p>
+
+        <section class="catalog-panel">
+            <div class="catalog-panel__top">
+                <h2>Tổng quan hôm nay</h2>
+            </div>
+            <div class="stats-grid">
+                <article>
+                    <h3>Đơn hàng hôm nay</h3>
+                    <p th:text="${todayOrders}">0</p>
+                </article>
+                <article>
+                    <h3>Doanh thu hôm nay</h3>
+                    <p th:text="${#numbers.formatDecimal(todayRevenue, 0, 'COMMA', 0, 'POINT')} + ' VND'">0 VND</p>
+                </article>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

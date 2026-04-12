@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khách hàng</title>
+    <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/catalog.css}">
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{fragments/header :: managementSidebar('staff-customers')}"></aside>
+
+    <main class="admin-main">
+        <header th:replace="~{fragments/header :: managementTopbar('Khách hàng')}"></header>
+
+        <p class="alert success" th:if="${success}" th:text="${success}"></p>
+        <p class="alert error" th:if="${error}" th:text="${error}"></p>
+
+        <section class="catalog-panel">
+            <div class="catalog-panel__top">
+                <h2>Quản lý khách hàng</h2>
+            </div>
+
+            <div class="staff-customer-grid">
+                <form class="form-panel" th:action="@{/staff/customers}" method="post">
+                    <label for="customerName">Tên khách hàng</label>
+                    <input id="customerName" name="customerName" type="text" required>
+
+                    <label for="phone">Số điện thoại</label>
+                    <input id="phone" name="phone" type="text">
+
+                    <label for="address">Địa chỉ</label>
+                    <input id="address" name="address" type="text">
+
+                    <div class="form-actions">
+                        <button class="btn btn-primary" type="submit">Thêm khách hàng</button>
+                    </div>
+                </form>
+
+                <table>
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Tên khách hàng</th>
+                        <th>Điện thoại</th>
+                        <th>Địa chỉ</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="customer : ${customers}">
+                        <td th:text="${customer.customerId}">1</td>
+                        <td th:text="${customer.customerName}">Nguyễn Văn A</td>
+                        <td th:text="${customer.phone}">0909000000</td>
+                        <td th:text="${customer.address}">TP.HCM</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>
+
