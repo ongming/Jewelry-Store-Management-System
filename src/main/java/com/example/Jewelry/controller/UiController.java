@@ -4,6 +4,7 @@ import com.example.Jewelry.model.entity.Customer;
 import com.example.Jewelry.model.entity.Order;
 import com.example.Jewelry.model.entity.Product;
 import com.example.Jewelry.model.entity.ProductAttribute;
+import com.example.Jewelry.model.entity.ProductImage;
 import com.example.Jewelry.model.entity.Staff;
 import com.example.Jewelry.service.CategoryService;
 import com.example.Jewelry.service.CustomerService;
@@ -117,11 +118,23 @@ public class UiController {
 
     @GetMapping("/guest/product-detail/{id}")
     public String productDetail(@PathVariable Integer id, Model model) {
-        Optional<ProductView> product = productService.findById(id).map(this::toProductView);
+        Optional<Product> product = productService.findById(id);
         if (product.isEmpty()) {
             return "redirect:/guest/products";
         }
-        model.addAttribute("product", product.get());
+
+        Product selectedProduct = product.get();
+        List<ProductImage> detailImages = selectedProduct.getImages() == null
+            ? List.of()
+            : selectedProduct.getImages().stream()
+                .sorted(Comparator.comparing(ProductImage::isPrimary).reversed()
+                    .thenComparingInt(ProductImage::getDisplayOrder))
+                .limit(3)
+                .toList();
+
+        model.addAttribute("product", selectedProduct);
+        model.addAttribute("detailImages", detailImages);
+        model.addAttribute("mainImageUrl", resolveMainImageUrl(detailImages));
         return "guest/product-detail";
     }
 
@@ -341,6 +354,20 @@ public class UiController {
 
         items.add(PageItem.page(totalPages, currentPage == totalPages));
         return items;
+    }
+
+    private String resolveMainImageUrl(List<ProductImage> images) {
+        if (images == null || images.isEmpty()) {
+            return "https://placehold.co/800x600?text=No+Image";
+        }
+
+        return images.stream()
+            .filter(ProductImage::isPrimary)
+            .findFirst()
+            .or(() -> images.stream().findFirst())
+            .map(ProductImage::getImageUrl)
+            .filter(url -> url != null && !url.isBlank())
+            .orElse("https://placehold.co/800x600?text=No+Image");
     }
 
     public record PageItem(Integer page, boolean active, boolean ellipsis) {

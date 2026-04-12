@@ -14,273 +14,285 @@ GO
 USE JewelryStoreDB;
 GO
 
--- ========================================
--- ACCOUNT (BASE CLASS)
--- ========================================
+-- ========================
+-- ACCOUNT
+-- ========================
 CREATE TABLE account (
-    account_id INT IDENTITY(1,1) PRIMARY KEY,
-    username NVARCHAR(100) NOT NULL UNIQUE,
+    account_id INT IDENTITY PRIMARY KEY,
+    username NVARCHAR(100) UNIQUE NOT NULL,
     password_hash NVARCHAR(255) NOT NULL,
     full_name NVARCHAR(150) NOT NULL,
     role_name NVARCHAR(30) NOT NULL
 );
 
--- ========================================
--- STAFF (JOINED INHERITANCE FROM ACCOUNT)
--- ========================================
+-- ========================
+-- STAFF
+-- ========================
 CREATE TABLE staff (
     account_id INT PRIMARY KEY,
-    staff_id INT NOT NULL UNIQUE,
+    staff_id INT UNIQUE NOT NULL,
     manager_admin_account_id INT NULL,
-
-    CONSTRAINT fk_staff_account FOREIGN KEY (account_id) REFERENCES account(account_id)
+    FOREIGN KEY (account_id) REFERENCES account(account_id)
 );
 
--- ========================================
--- ADMIN (JOINED INHERITANCE FROM STAFF)
--- ========================================
+-- ========================
+-- ADMIN
+-- ========================
 CREATE TABLE admin (
     account_id INT PRIMARY KEY,
-    CONSTRAINT fk_admin_staff FOREIGN KEY (account_id) REFERENCES staff(account_id)
+    FOREIGN KEY (account_id) REFERENCES staff(account_id)
 );
 
 ALTER TABLE staff
-ADD CONSTRAINT fk_staff_manager_admin FOREIGN KEY (manager_admin_account_id) REFERENCES admin(account_id);
+ADD CONSTRAINT fk_staff_admin
+FOREIGN KEY (manager_admin_account_id) REFERENCES admin(account_id);
 
--- ========================================
+-- ========================
 -- CUSTOMER
--- ========================================
+-- ========================
 CREATE TABLE customer (
-    customer_id INT IDENTITY(1,1) PRIMARY KEY,
-    customer_name NVARCHAR(150) NOT NULL,
+    customer_id INT IDENTITY PRIMARY KEY,
+    customer_name NVARCHAR(150),
     phone NVARCHAR(20),
     address NVARCHAR(255)
 );
 
--- ========================================
--- SUPPLIER
--- ========================================
-CREATE TABLE supplier (
-    supplier_id INT IDENTITY(1,1) PRIMARY KEY,
-    supplier_name NVARCHAR(150) NOT NULL,
-    contact_person NVARCHAR(150),
-    phone NVARCHAR(20),
-    address NVARCHAR(255)
-);
-
--- ========================================
+-- ========================
 -- CATEGORY
--- ========================================
+-- ========================
 CREATE TABLE category (
-    category_id INT IDENTITY(1,1) PRIMARY KEY,
-    category_name NVARCHAR(100) NOT NULL UNIQUE
+    category_id INT IDENTITY PRIMARY KEY,
+    category_name NVARCHAR(100)
 );
 
--- ========================================
+-- ========================
 -- PRODUCT
--- ========================================
+-- ========================
 CREATE TABLE product (
-    product_id INT IDENTITY(1,1) PRIMARY KEY,
-    product_code NVARCHAR(50) NOT NULL UNIQUE,
-    product_name NVARCHAR(150) NOT NULL,
-    base_price DECIMAL(15,2) NOT NULL,
-    image_url NVARCHAR(500) NULL,
-    category_id INT NOT NULL,
-
-    CONSTRAINT fk_product_category FOREIGN KEY (category_id) REFERENCES category(category_id)
+    product_id INT IDENTITY PRIMARY KEY,
+    product_code NVARCHAR(50) UNIQUE,
+    product_name NVARCHAR(150),
+    base_price DECIMAL(15,2),
+    detail NVARCHAR(MAX),
+    category_id INT,
+    FOREIGN KEY (category_id) REFERENCES category(category_id)
 );
 
--- ========================================
+-- ========================
 -- PRODUCT ATTRIBUTE
--- ========================================
+-- ========================
 CREATE TABLE product_attribute (
-    attribute_id INT IDENTITY(1,1) PRIMARY KEY,
-    attribute_name NVARCHAR(100) NOT NULL,
-    attribute_value NVARCHAR(255) NOT NULL,
+    attribute_id INT IDENTITY PRIMARY KEY,
     product_id INT NOT NULL,
-
-    CONSTRAINT fk_attribute_product FOREIGN KEY (product_id) REFERENCES product(product_id)
+    attribute_name NVARCHAR(100),
+    attribute_value NVARCHAR(255),
+    FOREIGN KEY (product_id) REFERENCES product(product_id)
 );
 
--- ========================================
--- INVENTORY (1-1 WITH PRODUCT)
--- ========================================
+-- ========================
+-- PRODUCT IMAGE
+-- ========================
+CREATE TABLE product_image (
+    image_id INT IDENTITY PRIMARY KEY,
+    product_id INT NOT NULL,
+    image_url NVARCHAR(500),
+    is_primary BIT DEFAULT 0,
+    display_order INT DEFAULT 0,
+    FOREIGN KEY (product_id) REFERENCES product(product_id)
+);
+
+-- ========================
+-- INVENTORY
+-- ========================
 CREATE TABLE inventory (
-    inventory_id INT IDENTITY(1,1) PRIMARY KEY,
-    quantity_stock INT NOT NULL,
-    product_id INT NOT NULL UNIQUE,
-
-    CONSTRAINT fk_inventory_product FOREIGN KEY (product_id) REFERENCES product(product_id)
+    inventory_id INT IDENTITY PRIMARY KEY,
+    quantity_stock INT,
+    product_id INT UNIQUE,
+    FOREIGN KEY (product_id) REFERENCES product(product_id)
 );
 
--- ========================================
--- VOUCHER
--- ========================================
-CREATE TABLE voucher (
-    voucher_id INT IDENTITY(1,1) PRIMARY KEY,
-    code NVARCHAR(50) NOT NULL UNIQUE,
-    discount_value DECIMAL(15,2) NOT NULL
+-- ========================
+-- SUPPLIER
+-- ========================
+CREATE TABLE supplier (
+    supplier_id INT IDENTITY PRIMARY KEY,
+    supplier_name NVARCHAR(150),
+    phone NVARCHAR(20),
+    address NVARCHAR(255)
 );
 
--- ========================================
--- ORDERS
--- ========================================
-CREATE TABLE orders (
-    order_id INT IDENTITY(1,1) PRIMARY KEY,
-    order_number NVARCHAR(50) NOT NULL UNIQUE,
-    order_date DATETIME2 NOT NULL,
-    status NVARCHAR(30) NOT NULL,
-    final_total DECIMAL(15,2) NOT NULL,
-    customer_id INT NOT NULL,
-    staff_account_id INT NOT NULL,
-    voucher_id INT NULL,
-
-    CONSTRAINT fk_orders_customer FOREIGN KEY (customer_id) REFERENCES customer(customer_id),
-    CONSTRAINT fk_orders_staff FOREIGN KEY (staff_account_id) REFERENCES staff(account_id),
-    CONSTRAINT fk_orders_voucher FOREIGN KEY (voucher_id) REFERENCES voucher(voucher_id)
-);
-
--- ========================================
--- PAYMENT (1-1 WITH ORDER)
--- ========================================
-CREATE TABLE payment (
-    payment_id INT IDENTITY(1,1) PRIMARY KEY,
-    method NVARCHAR(50) NOT NULL,
-    order_id INT NOT NULL UNIQUE,
-
-    CONSTRAINT fk_payment_order FOREIGN KEY (order_id) REFERENCES orders(order_id)
-);
-
--- ========================================
--- ORDER DETAIL
--- ========================================
-CREATE TABLE order_detail (
-    order_detail_id INT IDENTITY(1,1) PRIMARY KEY,
-    quantity INT NOT NULL,
-    unit_price DECIMAL(15,2) NOT NULL,
-    order_id INT NOT NULL,
-    product_id INT NOT NULL,
-
-    CONSTRAINT fk_order_detail_order FOREIGN KEY (order_id) REFERENCES orders(order_id),
-    CONSTRAINT fk_order_detail_product FOREIGN KEY (product_id) REFERENCES product(product_id)
-);
-
--- ========================================
+-- ========================
 -- IMPORT RECEIPT
--- ========================================
+-- ========================
 CREATE TABLE import_receipt (
-    receipt_id INT IDENTITY(1,1) PRIMARY KEY,
-    import_date DATETIME2 NOT NULL,
-    total_cost DECIMAL(15,2) NOT NULL,
-    supplier_id INT NOT NULL,
-    staff_account_id INT NOT NULL,
-
-    CONSTRAINT fk_import_receipt_supplier FOREIGN KEY (supplier_id) REFERENCES supplier(supplier_id),
-    CONSTRAINT fk_import_receipt_staff FOREIGN KEY (staff_account_id) REFERENCES staff(account_id)
+    receipt_id INT IDENTITY PRIMARY KEY,
+    import_date DATETIME,
+    total_cost DECIMAL(15,2),
+    supplier_id INT,
+    staff_account_id INT,
+    FOREIGN KEY (supplier_id) REFERENCES supplier(supplier_id),
+    FOREIGN KEY (staff_account_id) REFERENCES staff(account_id)
 );
 
--- ========================================
+-- ========================
 -- IMPORT DETAIL
--- ========================================
+-- ========================
 CREATE TABLE import_detail (
-    detail_id INT IDENTITY(1,1) PRIMARY KEY,
-    quantity INT NOT NULL,
-    import_price DECIMAL(15,2) NOT NULL,
-    receipt_id INT NOT NULL,
-    product_id INT NOT NULL,
-
-    CONSTRAINT fk_import_detail_receipt FOREIGN KEY (receipt_id) REFERENCES import_receipt(receipt_id),
-    CONSTRAINT fk_import_detail_product FOREIGN KEY (product_id) REFERENCES product(product_id)
+    detail_id INT IDENTITY PRIMARY KEY,
+    quantity INT,
+    import_price DECIMAL(15,2),
+    receipt_id INT,
+    product_id INT,
+    FOREIGN KEY (receipt_id) REFERENCES import_receipt(receipt_id),
+    FOREIGN KEY (product_id) REFERENCES product(product_id)
 );
+
+-- ========================
+-- VOUCHER
+-- ========================
+CREATE TABLE voucher (
+    voucher_id INT IDENTITY PRIMARY KEY,
+    code NVARCHAR(50),
+    discount_value DECIMAL(15,2)
+);
+
+-- ========================
+-- ORDERS
+-- ========================
+CREATE TABLE orders (
+    order_id INT IDENTITY PRIMARY KEY,
+    order_number NVARCHAR(50),
+    order_date DATETIME,
+    status NVARCHAR(30),
+    final_total DECIMAL(15,2),
+    customer_id INT,
+    staff_account_id INT,
+    voucher_id INT NULL,
+    FOREIGN KEY (customer_id) REFERENCES customer(customer_id),
+    FOREIGN KEY (staff_account_id) REFERENCES staff(account_id),
+    FOREIGN KEY (voucher_id) REFERENCES voucher(voucher_id)
+);
+
+-- ========================
+-- ORDER DETAIL
+-- ========================
+CREATE TABLE order_detail (
+    order_detail_id INT IDENTITY PRIMARY KEY,
+    quantity INT,
+    unit_price DECIMAL(15,2),
+    order_id INT,
+    product_id INT,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id),
+    FOREIGN KEY (product_id) REFERENCES product(product_id)
+);
+
+-- ========================
+-- PAYMENT
+-- ========================
+CREATE TABLE payment (
+    payment_id INT IDENTITY PRIMARY KEY,
+    method NVARCHAR(50),
+    order_id INT UNIQUE,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id)
+);
+
+-- ========================
+-- SEED DATA (CHUẨN KHÔNG LỖI)
+-- ========================
+
+-- ACCOUNT
+INSERT INTO account VALUES
+(N'admin', N'123', N'Admin', N'ADMIN'),
+(N'staff1', N'123', N'Staff 1', N'STAFF');
+
+-- STAFF
+INSERT INTO staff VALUES
+(1, 1000, NULL),
+(2, 1001, NULL);
+
+-- ADMIN
+INSERT INTO admin VALUES (1);
+
+-- UPDATE MANAGER
+UPDATE staff SET manager_admin_account_id = 1 WHERE account_id = 2;
+
+-- CUSTOMER
+INSERT INTO customer VALUES
+(N'Pham Thi A', '0909000111', N'Q1'),
+(N'Hoang Van B', '0911222333', N'Q7');
+
+-- CATEGORY
+INSERT INTO category VALUES
+(N'Ring'),
+(N'Necklace');
+
+-- PRODUCT
+INSERT INTO product VALUES
+(N'R001', N'Nhẫn Vàng 18K', 5500000, N'Nhẫn vàng cao cấp', 1),
+(N'R002', N'Nhẫn Kim Cương', 12500000, N'Nhẫn kim cương', 1),
+(N'N001', N'Dây chuyền', 8900000, N'Dây chuyền đẹp', 2);
+
+-- PRODUCT ATTRIBUTE
+INSERT INTO product_attribute VALUES
+(1, N'Chất liệu', N'Vàng 18K'),
+(1, N'Size', N'7'),
+(2, N'Đá', N'Kim cương'),
+(3, N'Chiều dài', N'45cm');
+
+-- PRODUCT IMAGE
+INSERT INTO product_image VALUES
+(1, N'https://images.unsplash.com/photo-1605100804763', 1, 1),
+(1, N'https://images.unsplash.com/photo-1588444650733', 0, 2),
+(2, N'https://images.unsplash.com/photo-1515562141207', 1, 1),
+(3, https://cdn.pnj.io/images/detailed/284/sp-gd0000y013147-day-chuyen-nam-vang-99-mancode-by-pnj-uy-ma-kim-linh-100.png', 1, 1);
+
+-- INVENTORY
+INSERT INTO inventory VALUES
+(20, 1),
+(10, 2),
+(15, 3);
+
+-- SUPPLIER
+INSERT INTO supplier VALUES
+(N'Gold Supplier', '0909999999', N'HCM');
+
+-- IMPORT RECEIPT
+INSERT INTO import_receipt VALUES
+(GETDATE(), 50000000, 1, 2);
+
+-- IMPORT DETAIL
+INSERT INTO import_detail VALUES
+(10, 4000000, 1, 1);
+
+-- VOUCHER
+INSERT INTO voucher VALUES
+(N'SALE10', 100000);
+
+-- ORDERS
+INSERT INTO orders VALUES
+(N'ORD001', GETDATE(), N'PAID', 15000000, 1, 2, 1);
+
+-- ORDER DETAIL
+INSERT INTO order_detail VALUES
+(1, 5500000, 1, 1);
+
+-- PAYMENT
+INSERT INTO payment VALUES
+(N'CASH', 1);
+
+UPDATE product
+SET detail = N'Nhẫn vàng 18K cao cấp được chế tác tinh xảo với độ hoàn thiện cao, mang lại vẻ đẹp sang trọng và đẳng cấp cho người đeo. Sản phẩm sử dụng vàng 18K với độ bền tốt, màu sắc sáng bóng lâu dài và không bị xỉn màu theo thời gian. Thiết kế tối giản nhưng tinh tế, phù hợp cho nhiều dịp như đi làm, dự tiệc hoặc làm quà tặng. Nhẫn có trọng lượng vừa phải, đeo thoải mái trong thời gian dài mà không gây khó chịu.'
+WHERE product_id = 1;
+
+UPDATE product
+SET detail = N'Nhẫn kim cương cao cấp được đính đá kim cương tự nhiên với độ sáng vượt trội, mang lại vẻ đẹp lấp lánh và sang trọng. Phần thân nhẫn được làm từ vàng chất lượng cao, đảm bảo độ bền và độ chắc chắn. Sản phẩm phù hợp làm trang sức cao cấp hoặc nhẫn cầu hôn, thể hiện sự đẳng cấp và tinh tế của người sở hữu. Thiết kế hiện đại, phù hợp với xu hướng thời trang hiện nay.'
+WHERE product_id = 2;
+
+UPDATE product
+SET detail = N'Dây chuyền vàng trắng được thiết kế thanh lịch và nhẹ nhàng, phù hợp với nhiều phong cách thời trang khác nhau. Sản phẩm có độ hoàn thiện cao, bề mặt sáng bóng và chống oxy hóa tốt. Với chiều dài tiêu chuẩn, dây chuyền dễ dàng kết hợp với nhiều loại trang phục từ công sở đến dạo phố. Đây là lựa chọn lý tưởng cho những ai yêu thích sự tinh tế và sang trọng.'
+WHERE product_id = 3;
+
+
 GO
 
--- ========================================
--- SEED DATA
--- ========================================
-INSERT INTO account (username, password_hash, full_name, role_name)
-VALUES
-    (N'admin', N'admin123', N'Nguyen Quan Tri', N'ADMIN'),
-    (N'staff01', N'staff123', N'Tran Nhan Vien 1', N'STAFF'),
-    (N'staff02', N'staff123', N'Le Nhan Vien 2', N'STAFF');
-
-INSERT INTO staff (account_id, staff_id, manager_admin_account_id)
-VALUES
-    (1, 1000, NULL),
-    (2, 1001, NULL),
-    (3, 1002, NULL);
-
-INSERT INTO admin (account_id)
-VALUES (1);
-
-UPDATE staff
-SET manager_admin_account_id = 1
-WHERE account_id IN (2, 3);
-
-INSERT INTO customer (customer_name, phone, address)
-VALUES
-    (N'Pham Thi A', N'0909000111', N'Quan 1, TP.HCM'),
-    (N'Hoang Van B', N'0911222333', N'Quan 7, TP.HCM');
-
-INSERT INTO supplier (supplier_name, contact_person, phone, address)
-VALUES
-    (N'Gold Source Ltd', N'Mr. Minh', N'0281234567', N'Binh Thanh, TP.HCM'),
-    (N'Gem Factory', N'Ms. Linh', N'0287654321', N'Thu Duc, TP.HCM');
-
-INSERT INTO category (category_name)
-VALUES
-    (N'Ring'),
-    (N'Necklace');
-
-INSERT INTO product (product_code, product_name, base_price, image_url, category_id)
-VALUES
-    (N'R001', N'Nhẫn Vàng 18K', 5500000.00, N'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=300&q=80', 1),
-    (N'R002', N'Nhẫn Kim Cương', 12500000.00, N'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=300&q=80', 1),
-    (N'N001', N'Dây Chuyền Vàng Trắng', 8900000.00, N'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=300&q=80', 2);
-
-INSERT INTO product_attribute (attribute_name, attribute_value, product_id)
-VALUES
-    (N'Material', N'18K Gold', 1),
-    (N'Weight', N'3.2g', 1),
-    (N'Material', N'Diamond + 18K Gold', 2),
-    (N'Stone', N'Natural Diamond', 2),
-    (N'Material', N'White Gold', 3),
-    (N'Length', N'45cm', 3);
-
-INSERT INTO inventory (quantity_stock, product_id)
-VALUES
-    (20, 1),
-    (8, 2),
-    (15, 3);
-
-INSERT INTO voucher (code, discount_value)
-VALUES
-    (N'WELCOME10', 100000.00),
-    (N'VIP500', 500000.00);
-
-INSERT INTO import_receipt (import_date, total_cost, supplier_id, staff_account_id)
-VALUES
-    ('2026-04-01 09:00:00', 80000000.00, 1, 2),
-    ('2026-04-05 14:30:00', 45000000.00, 2, 3);
-
-INSERT INTO import_detail (quantity, import_price, receipt_id, product_id)
-VALUES
-    (15, 4200000.00, 1, 1),
-    (6, 10200000.00, 1, 2),
-    (12, 6900000.00, 2, 3);
-
-INSERT INTO orders (order_number, order_date, status, final_total, customer_id, staff_account_id, voucher_id)
-VALUES
-    (N'ORD-20260410-001', '2026-04-10 10:15:00', N'PAID', 17900000.00, 1, 2, 1),
-    (N'ORD-20260410-002', '2026-04-10 16:40:00', N'PAID', 12500000.00, 2, 3, NULL);
-
-INSERT INTO order_detail (quantity, unit_price, order_id, product_id)
-VALUES
-    (1, 12500000.00, 1, 2),
-    (1, 5500000.00, 1, 1),
-    (1, 12500000.00, 2, 2);
-
-INSERT INTO payment (method, order_id)
-VALUES
-    (N'CASH', 1),
-    (N'BANK_TRANSFER', 2);
-GO
+PRINT N'✔ FULL DATABASE OK (ATTRIBUTE + IMAGE + DETAIL)';

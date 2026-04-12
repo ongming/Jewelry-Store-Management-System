@@ -1,81 +1,154 @@
-You are a senior frontend + backend developer.
+Fix my product detail page UI and data binding issues in my Spring Boot + Thymeleaf project.
 
-Refactor my STAFF dashboard UI.
-
-CURRENT PROBLEM:
-- All features (product list, create order, customer management) are in ONE page.
-- It looks messy and not user-friendly.
-
-GOAL:
-- Split each feature into separate pages.
+Current problems:
+1. Layout looks broken, spacing inconsistent, and components are not aligned properly.
+2. Product images are not displayed correctly (only 1 image shown while DB has multiple).
+3. Product detail description is not rendered correctly from database.
+4. Overall UI looks messy and not structured.
 
 ========================
-1. CREATE SEPARATE PAGES
+1. FIX PRODUCT IMAGE LOGIC (VERY IMPORTANT)
 ========================
 
-Create the following pages:
+- Each product can have MAX 3 images.
+- Fetch images from product_image table using product_id.
+- Display:
 
-1. staff/dashboard.html
-   - Show summary only:
-     + Today orders
-     + Revenue
-   - NO forms here
+LEFT SIDE:
+- 1 main image (is_primary = 1 if exists, otherwise first image)
+- Below: up to 3 thumbnail images
 
-2. staff/products.html
-   - Show product list (read-only)
+- Clicking thumbnail:
+  → updates main image (use JS)
 
-3. staff/orders.html
-   - Create new order
-   - Order form only
+- If no image:
+  → show placeholder
 
-4. staff/customers.html
-   - Customer list
-   - Add new customer form
+Thymeleaf example:
+- Loop through images:
+  th:each="img : ${product.images}"
 
-========================
-2. SIDEBAR NAVIGATION
-========================
-
-Update sidebar:
-
-- Dashboard → /staff/dashboard
-- Xem sản phẩm → /staff/products
-- Tạo đơn hàng → /staff/orders
-- Khách hàng → /staff/customers
-
-Each menu item must navigate to a DIFFERENT page.
+- Limit to 3 images:
+  use .subList(0,3) or logic in backend
 
 ========================
-3. CONTROLLER UPDATE (SPRING BOOT)
+2. FIX DATA BINDING
 ========================
 
-Create separate routes:
+- Product detail MUST come from:
+  product.detail (database)
 
-@GetMapping("/staff/dashboard") → return "staff/dashboard"
-@GetMapping("/staff/products") → return "staff/products"
-@GetMapping("/staff/orders") → return "staff/orders"
-@GetMapping("/staff/customers") → return "staff/customers"
+Replace hardcoded text:
+❌ "Sản phẩm trang sức cao cấp"
 
-========================
-4. REMOVE DUPLICATION
-========================
+With:
+✅ th:text="${product.detail}"
 
-- Remove product table from dashboard
-- Remove order form from dashboard
-- Move them to correct pages
+- Product attributes:
+  Loop:
+  th:each="attr : ${product.attributes}"
 
 ========================
-5. UI IMPROVEMENT
+3. REBUILD LAYOUT (CLEAN STRUCTURE)
 ========================
 
-- Keep same theme (dark + gold)
-- Use clean card layout
-- Add page title for each page
+Use 2-column layout:
+
+.container
+  .left (60%)
+     - main image
+     - thumbnails
+  .right (40%)
+     - category
+     - product name
+     - price
+     - attributes
+     - contact button
+
+Below:
+  - product description section (full width)
 
 ========================
-6. OUTPUT
+4. FIX UI (IMPORTANT)
 ========================
 
-- Show updated folder structure
-- Show updated controller code
-- Provide sample HTML for each page
+- Remove messy spacing
+- Align everything using flexbox or grid
+
+Use:
+display: flex;
+gap: 32px;
+align-items: flex-start;
+
+- Add consistent padding: 24px–32px
+
+========================
+5. CONTACT BUTTON (REPLACE ADD TO CART)
+========================
+
+Replace:
+"Thêm vào giỏ hàng"
+
+With:
+Button:
+"LIÊN HỆ NHÂN VIÊN"
+
+Behavior:
+- click → open tel:0909000111
+OR
+- show popup with phone + zalo
+
+========================
+6. CLEAN PRODUCT DESCRIPTION SECTION
+========================
+
+Below product:
+
+Title:
+"Mô tả sản phẩm"
+
+Content:
+th:text="${product.detail}"
+
+Style:
+- max-width: 800px
+- line-height: 1.6
+- margin-top: 40px
+
+========================
+7. CSS FIX (IMPORTANT)
+========================
+
+- Fix image stretching:
+  object-fit: cover;
+  border-radius: 12px;
+
+- Thumbnail:
+  width: 80px;
+  height: 80px;
+  cursor: pointer;
+
+- Main image:
+  width: 100%;
+  height: 400px;
+
+========================
+8. DEBUG CHECKLIST
+========================
+
+Make sure:
+- Backend returns:
+  product
+  product.images
+  product.attributes
+
+- Relationship mapping:
+  @OneToMany(mappedBy="product")
+
+========================
+
+IMPORTANT:
+- Do NOT redesign randomly
+- Fix structure + data rendering first
+- Then apply clean modern layout
+- Keep black & gold theme

@@ -23,9 +23,6 @@ public class Supplier {
     @Column(name = "supplier_name", nullable = false, length = 150)
     private String supplierName;
 
-    @Column(name = "contact_person", length = 150)
-    private String contactPerson;
-
     @Column(name = "phone", length = 20)
     private String phone;
 
@@ -38,10 +35,9 @@ public class Supplier {
     public Supplier() {
     }
 
-    public Supplier(int supplierId, String supplierName, String contactPerson, String phone, String address) {
+    public Supplier(int supplierId, String supplierName, String phone, String address) {
         this.supplierId = supplierId;
         this.supplierName = supplierName;
-        this.contactPerson = contactPerson;
         this.phone = phone;
         this.address = address;
     }
@@ -60,14 +56,6 @@ public class Supplier {
 
     public void setSupplierName(String supplierName) {
         this.supplierName = supplierName;
-    }
-
-    public String getContactPerson() {
-        return contactPerson;
-    }
-
-    public void setContactPerson(String contactPerson) {
-        this.contactPerson = contactPerson;
     }
 
     public String getPhone() {
