@@ -39,7 +39,7 @@ public class ProductController {
         this.categoryService = categoryService;
     }
 
-    @GetMapping({"/", "/home"})
+    @GetMapping({"/", "/home", "/guest/home"})
     public String home(Model model) {
         List<ProductView> productViews = productService.findAll().stream()
             .map(this::toProductView)
@@ -51,7 +51,7 @@ public class ProductController {
         return "guest/home";
     }
 
-    @GetMapping("/products")
+    @GetMapping({"/products", "/guest/products"})
     public String products(@RequestParam(required = false) String category,
                            @RequestParam(required = false) Integer minPrice,
                            @RequestParam(required = false) Integer maxPrice,
@@ -101,7 +101,7 @@ public class ProductController {
         return "guest/products";
     }
 
-    @GetMapping("/products/{id}")
+    @GetMapping({"/products/{id}", "/guest/product-detail/{id}"})
     public String productDetail(@PathVariable Integer id, Model model) {
         Optional<Product> product = productService.findById(id);
         if (product.isEmpty()) {
@@ -123,7 +123,7 @@ public class ProductController {
         return "guest/product-detail";
     }
 
-    @GetMapping("/cart")
+    @GetMapping({"/cart", "/guest/cart"})
     public String cart(Model model) {
         List<ProductView> cartItems = productService.findAll().stream()
             .map(this::toProductView)
@@ -134,7 +134,7 @@ public class ProductController {
         return "guest/cart";
     }
 
-    @GetMapping("/checkout")
+    @GetMapping({"/checkout", "/guest/checkout"})
     public String checkout(Model model) {
         int orderTotal = productService.findAll().stream()
             .map(this::toProductView)
@@ -315,12 +315,13 @@ public class ProductController {
             .orElse("Đang cập nhật");
         String weight = readAttribute(product, "Weight", "Trong luong", "Trọng lượng")
             .orElse("Đang cập nhật");
+        int displayPrice = product.getBasePrice() == null ? 0 : product.getBasePrice().intValue();
 
         return new ProductView(
             (long) product.getProductId(),
             categoryName,
             product.getProductName(),
-            product.getBasePrice().intValue(),
+            displayPrice,
             description,
             material,
             weight,

@@ -23,8 +23,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Controller
 public class AuthController {
@@ -33,8 +31,6 @@ public class AuthController {
     private final StaffService staffService;
     private final AdminService adminService;
     private final StaffRepository staffRepository;
-
-    private final Map<Integer, String> accountStatuses = new ConcurrentHashMap<>();
 
     public AuthController(AccountService accountService,
                           StaffService staffService,
@@ -49,6 +45,11 @@ public class AuthController {
     @GetMapping({"/auth/login", "/login"})
     public String loginPage() {
         return "login";
+    }
+
+    @GetMapping({"/management/login", "/admin/login"})
+    public String legacyLoginPage() {
+        return "redirect:/auth/login";
     }
 
     @PostMapping({"/auth/login", "/login"})
@@ -92,35 +93,66 @@ public class AuthController {
         return "redirect:/auth/login";
     }
 
+    @GetMapping("/management/dashboard")
+    public String legacyManagementDashboard(HttpSession session) {
+        Object roleName = session.getAttribute("roleName");
+        if ("ADMIN".equals(roleName)) {
+            return "redirect:/admin/dashboard";
+        }
+        if ("STAFF".equals(roleName)) {
+            return "redirect:/staff/dashboard";
+        }
+        return "redirect:/auth/login";
+    }
+
     @GetMapping({"/auth/accounts", "/admin/staff-management"})
     public String accountManagement(@RequestParam(required = false) String keyword,
                                     @RequestParam(required = false, defaultValue = "ALL") String role,
                                     @RequestParam(required = false) Integer editId,
                                     @RequestParam(required = false) Integer viewId,
                                     @RequestParam(required = false, defaultValue = "false") boolean create,
+                                    HttpSession session,
                                     Model model) {
+        Admin currentAdmin = resolveCurrentAdmin(session);
+        if (currentAdmin == null) {
+            return "redirect:/auth/login";
+        }
+
         String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT);
         String normalizedRole = role == null ? "ALL" : role.trim().toUpperCase(Locale.ROOT);
+        String effectiveRole = ("ALL".equals(normalizedRole) || "STAFF".equals(normalizedRole))
+            ? normalizedRole
+            : "STAFF";
 
-        List<AccountRow> rows = accountService.findAll().stream()
-            .map(this::toRow)
-            .filter(row -> normalizedRole.equals("ALL") || row.role().equals(normalizedRole))
-            .filter(row -> normalizedKeyword.isBlank()
-                || row.fullName().toLowerCase(Locale.ROOT).contains(normalizedKeyword)
-                || row.username().toLowerCase(Locale.ROOT).contains(normalizedKeyword))
-            .sorted(Comparator.comparing(AccountRow::accountId))
-            .toList();
+        try {
+            List<AccountRow> rows = staffRepository.findManagedStaffWithManager(currentAdmin.getAccountId()).stream()
+                .map(this::toRow)
+                .filter(row -> effectiveRole.equals("ALL") || row.role().equals(effectiveRole))
+                .filter(row -> normalizedKeyword.isBlank()
+                    || row.fullName().toLowerCase(Locale.ROOT).contains(normalizedKeyword)
+                    || row.username().toLowerCase(Locale.ROOT).contains(normalizedKeyword))
+                .sorted(Comparator.comparing(AccountRow::accountId))
+                .toList();
 
-        AccountRow editRow = editId == null ? null : rows.stream().filter(row -> row.accountId() == editId).findFirst().orElse(null);
-        AccountRow viewRow = viewId == null ? null : rows.stream().filter(row -> row.accountId() == viewId).findFirst().orElse(null);
+            AccountRow editRow = editId == null ? null : rows.stream().filter(row -> row.accountId() == editId).findFirst().orElse(null);
+            AccountRow viewRow = viewId == null ? null : rows.stream().filter(row -> row.accountId() == viewId).findFirst().orElse(null);
 
-        model.addAttribute("rows", rows);
+            model.addAttribute("rows", rows);
+            model.addAttribute("showModal", create || editRow != null);
+            model.addAttribute("isEdit", editRow != null);
+            model.addAttribute("editRow", editRow);
+            model.addAttribute("viewRow", viewRow);
+        } catch (RuntimeException runtimeException) {
+            model.addAttribute("rows", List.of());
+            model.addAttribute("showModal", false);
+            model.addAttribute("isEdit", false);
+            model.addAttribute("editRow", null);
+            model.addAttribute("viewRow", null);
+            model.addAttribute("error", "Không thể tải danh sách nhân sự: " + runtimeException.getMessage());
+        }
+
         model.addAttribute("keyword", keyword == null ? "" : keyword);
-        model.addAttribute("role", normalizedRole);
-        model.addAttribute("showModal", create || editRow != null);
-        model.addAttribute("isEdit", editRow != null);
-        model.addAttribute("editRow", editRow);
-        model.addAttribute("viewRow", viewRow);
+        model.addAttribute("role", effectiveRole);
         return "admin/staff-management";
     }
 
@@ -129,37 +161,30 @@ public class AuthController {
     public String createAccount(@RequestParam String fullName,
                                 @RequestParam String username,
                                 @RequestParam String password,
-                                @RequestParam String role,
                                 @RequestParam(defaultValue = "ACTIVE") String status,
+                                HttpSession session,
                                 RedirectAttributes redirectAttributes) {
-        String normalizedRole = normalizeRole(role);
+        Admin currentAdmin = resolveCurrentAdmin(session);
+        if (currentAdmin == null) {
+            redirectAttributes.addFlashAttribute("error", "Phiên đăng nhập đã hết hạn.");
+            return "redirect:/auth/login";
+        }
+
         if (accountService.findByUsername(username.trim()).isPresent()) {
             redirectAttributes.addFlashAttribute("error", "Tên đăng nhập đã tồn tại.");
             return "redirect:/admin/staff-management?create=true";
         }
 
         int nextStaffId = staffRepository.findMaxStaffId() + 1;
-        if ("ADMIN".equals(normalizedRole)) {
-            Admin admin = new Admin();
-            admin.setFullName(fullName.trim());
-            admin.setUsername(username.trim());
-            admin.setPasswordHash(password.trim());
-            admin.setRoleName("ADMIN");
-            admin.setStaffId(nextStaffId);
-            admin.setManagerAdmin(null);
-            adminService.save(admin);
-            accountStatuses.put(admin.getAccountId(), normalizeStatus(status));
-        } else {
-            Staff staff = new Staff();
-            staff.setFullName(fullName.trim());
-            staff.setUsername(username.trim());
-            staff.setPasswordHash(password.trim());
-            staff.setRoleName("STAFF");
-            staff.setStaffId(nextStaffId);
-            staff.setManagerAdmin(getPrimaryAdmin());
-            staffService.save(staff);
-            accountStatuses.put(staff.getAccountId(), normalizeStatus(status));
-        }
+        Staff staff = new Staff();
+        staff.setFullName(fullName.trim());
+        staff.setUsername(username.trim());
+        staff.setPasswordHash(password.trim());
+        staff.setRoleName("STAFF");
+        staff.setStatus(normalizeStatus(status));
+        staff.setStaffId(nextStaffId);
+        staff.setManagerAdmin(currentAdmin);
+        staffService.save(staff);
 
         redirectAttributes.addFlashAttribute("success", "Đã thêm tài khoản thành công.");
         return "redirect:/admin/staff-management";
@@ -169,29 +194,28 @@ public class AuthController {
     @Transactional
     public String updateAccount(@PathVariable Integer accountId,
                                 @RequestParam String fullName,
-                                @RequestParam String password,
-                                @RequestParam String role,
+                                @RequestParam(required = false) String password,
                                 @RequestParam(defaultValue = "ACTIVE") String status,
+                                HttpSession session,
                                 RedirectAttributes redirectAttributes) {
-        Account account = accountService.findById(accountId).orElse(null);
-        if (account == null) {
+        Admin currentAdmin = resolveCurrentAdmin(session);
+        if (currentAdmin == null) {
+            redirectAttributes.addFlashAttribute("error", "Phiên đăng nhập đã hết hạn.");
+            return "redirect:/auth/login";
+        }
+
+        Staff staff = staffRepository.findManagedStaffByAccountId(accountId, currentAdmin.getAccountId()).orElse(null);
+        if (staff == null) {
             redirectAttributes.addFlashAttribute("error", "Không tìm thấy tài khoản để cập nhật.");
             return "redirect:/admin/staff-management";
         }
 
-        String normalizedRole = normalizeRole(role);
-        String currentRole = normalizeRole(account.getRoleName());
-        if (!normalizedRole.equals(currentRole)) {
-            redirectAttributes.addFlashAttribute("error", "Không thể đổi vai trò trong phiên bản này.");
-            return "redirect:/admin/staff-management?editId=" + accountId;
-        }
-
-        account.setFullName(fullName.trim());
+        staff.setFullName(fullName.trim());
         if (password != null && !password.isBlank()) {
-            account.setPasswordHash(password.trim());
+            staff.setPasswordHash(password.trim());
         }
-        accountService.save(account);
-        accountStatuses.put(accountId, normalizeStatus(status));
+        staff.setStatus(normalizeStatus(status));
+        staffService.save(staff);
 
         redirectAttributes.addFlashAttribute("success", "Cập nhật tài khoản thành công.");
         return "redirect:/admin/staff-management";
@@ -200,10 +224,22 @@ public class AuthController {
     @PostMapping({"/auth/accounts/{accountId}/delete", "/admin/staff-management/{accountId}/delete"})
     @Transactional
     public String deleteAccount(@PathVariable Integer accountId,
+                                HttpSession session,
                                 RedirectAttributes redirectAttributes) {
+        Admin currentAdmin = resolveCurrentAdmin(session);
+        if (currentAdmin == null) {
+            redirectAttributes.addFlashAttribute("error", "Phiên đăng nhập đã hết hạn.");
+            return "redirect:/auth/login";
+        }
+
+        Staff managedStaff = staffRepository.findManagedStaffByAccountId(accountId, currentAdmin.getAccountId()).orElse(null);
+        if (managedStaff == null) {
+            redirectAttributes.addFlashAttribute("error", "Bạn không có quyền xóa tài khoản này.");
+            return "redirect:/admin/staff-management";
+        }
+
         try {
             accountService.deleteById(accountId);
-            accountStatuses.remove(accountId);
             redirectAttributes.addFlashAttribute("success", "Đã xóa tài khoản.");
         } catch (Exception exception) {
             redirectAttributes.addFlashAttribute("error", "Không thể xóa tài khoản: " + exception.getMessage());
@@ -222,20 +258,19 @@ public class AuthController {
         }
     }
 
-    private AccountRow toRow(Account account) {
-        String role = normalizeRole(account.getRoleName());
-        String status = accountStatuses.computeIfAbsent(account.getAccountId(), key -> "ACTIVE");
-        String avatar = "https://ui-avatars.com/api/?name="
-            + URLEncoder.encode(account.getFullName(), StandardCharsets.UTF_8)
-            + "&background=1a1a1a&color=d4af37";
-        return new AccountRow(account.getAccountId(), account.getFullName(), account.getUsername(), role, status, avatar);
+    @GetMapping("/management/db-test")
+    @ResponseBody
+    public String legacyDbTest() {
+        return dbTest();
     }
 
-    private String normalizeRole(String role) {
-        if (role == null) {
-            return "STAFF";
-        }
-        return "ADMIN".equalsIgnoreCase(role.trim()) ? "ADMIN" : "STAFF";
+    private AccountRow toRow(Staff staff) {
+        String status = staff.getStatus() == null ? "ACTIVE" : normalizeStatus(staff.getStatus());
+        String avatar = "https://ui-avatars.com/api/?name="
+            + URLEncoder.encode(staff.getFullName(), StandardCharsets.UTF_8)
+            + "&background=1a1a1a&color=d4af37";
+        String managerName = staff.getManagerAdmin() == null ? "-" : staff.getManagerAdmin().getFullName();
+        return new AccountRow(staff.getAccountId(), staff.getFullName(), staff.getUsername(), "STAFF", status, avatar, managerName);
     }
 
     private String normalizeStatus(String status) {
@@ -245,8 +280,12 @@ public class AuthController {
         return "INACTIVE".equalsIgnoreCase(status.trim()) ? "INACTIVE" : "ACTIVE";
     }
 
-    private Admin getPrimaryAdmin() {
-        return adminService.findAll().stream().findFirst().orElse(null);
+    private Admin resolveCurrentAdmin(HttpSession session) {
+        Object accountId = session.getAttribute("accountId");
+        if (!(accountId instanceof Number accountIdNumber)) {
+            return null;
+        }
+        return adminService.findById(accountIdNumber.intValue()).orElse(null);
     }
 
     public record AccountRow(int accountId,
@@ -254,6 +293,7 @@ public class AuthController {
                              String username,
                              String role,
                              String status,
-                             String avatarUrl) {
+                             String avatarUrl,
+                             String managerName) {
     }
 }

@@ -7,7 +7,7 @@ import java.util.Optional;
 
 public interface AccountRepository extends JpaRepository<Account, Integer> {
 
-    Optional<Account> findByUsernameAndPasswordHash(String username, String passwordHash);
+    Optional<Account> findByUsernameAndPasswordHashAndStatusIgnoreCase(String username, String passwordHash, String status);
 
     Optional<Account> findByUsername(String username);
 }

@@ -262,6 +262,13 @@ public class OrderController {
         for (OrderDetail detail : order.getOrderDetails()) {
             Product product = detail.getProduct();
             Inventory inventory = product.getInventory();
+            if (inventory == null) {
+                redirectAttributes.addFlashAttribute(
+                    "error",
+                    "Sản phẩm " + product.getProductName() + " chưa có tồn kho để trừ."
+                );
+                return "redirect:/staff/orders";
+            }
             inventory.updateStock(inventory.getQuantityStock() - detail.getQuantity());
             inventoryService.save(inventory);
 

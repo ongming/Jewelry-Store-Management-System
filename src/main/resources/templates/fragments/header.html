@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <body>
-<header th:fragment="guestHeader" class="site-header">
+<header th:fragment="guestHeader(showLogin)" class="site-header">
     <div class="container nav-wrap">
         <a class="brand" th:href="@{/home}">Maison Aurelia</a>
         <nav class="nav-links">
@@ -9,10 +9,8 @@
             <a th:href="@{/products}">Sản phẩm</a>
             <a href="#contact">Liên hệ</a>
         </nav>
-        <div class="header-actions">
-            <a class="login-link" th:href="@{/auth/login}">Đăng nhập</a>
-            <a class="cart-link" th:href="@{/cart}">Giỏ hàng</a>
-        </div>
+        <a class="cart-link" th:if="${showLogin}" th:href="@{/auth/login}">Login</a>
+        <a class="cart-link" th:unless="${showLogin}" th:href="@{/cart}">Giỏ hàng</a>
     </div>
 </header>
 

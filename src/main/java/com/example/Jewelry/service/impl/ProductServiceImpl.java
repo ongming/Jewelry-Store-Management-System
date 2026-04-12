@@ -3,6 +3,7 @@ package com.example.Jewelry.service.impl;
 import com.example.Jewelry.model.entity.Category;
 import com.example.Jewelry.model.entity.Product;
 import com.example.Jewelry.repository.CategoryRepository;
+import com.example.Jewelry.repository.ImportDetailRepository;
 import com.example.Jewelry.repository.OrderDetailRepository;
 import com.example.Jewelry.repository.ProductRepository;
 import com.example.Jewelry.service.ProductService;
@@ -19,13 +20,16 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final OrderDetailRepository orderDetailRepository;
+    private final ImportDetailRepository importDetailRepository;
 
     public ProductServiceImpl(ProductRepository productRepository,
                               CategoryRepository categoryRepository,
-                              OrderDetailRepository orderDetailRepository) {
+                              OrderDetailRepository orderDetailRepository,
+                              ImportDetailRepository importDetailRepository) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.orderDetailRepository = orderDetailRepository;
+        this.importDetailRepository = importDetailRepository;
     }
 
     @Override
@@ -111,6 +115,9 @@ public class ProductServiceImpl implements ProductService {
         }
         if (orderDetailRepository.existsByProduct_ProductId(productId)) {
             throw new IllegalStateException("Khong the xoa san pham da ton tai trong don hang.");
+        }
+        if (importDetailRepository.existsByProduct_ProductId(productId)) {
+            throw new IllegalStateException("Khong the xoa san pham da ton tai trong phieu nhap.");
         }
         productRepository.deleteById(productId);
     }

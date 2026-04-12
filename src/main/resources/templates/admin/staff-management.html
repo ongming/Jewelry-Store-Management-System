@@ -24,7 +24,6 @@
                 <input type="text" name="keyword" placeholder="Tìm theo họ tên hoặc tên đăng nhập" th:value="${keyword}">
                 <select name="role">
                     <option value="ALL" th:selected="${role == 'ALL'}">Tất cả vai trò</option>
-                    <option value="ADMIN" th:selected="${role == 'ADMIN'}">Quản trị viên</option>
                     <option value="STAFF" th:selected="${role == 'STAFF'}">Nhân viên</option>
                 </select>
                 <button class="btn btn-secondary" type="submit">Lọc</button>
@@ -40,6 +39,7 @@
                     <th>Họ và tên</th>
                     <th>Tên đăng nhập</th>
                     <th>Vai trò</th>
+                    <th>Quản lý bởi</th>
                     <th>Trạng thái</th>
                     <th>Thao tác</th>
                 </tr>
@@ -53,6 +53,7 @@
                         <span class="badge" th:classappend="${row.role == 'ADMIN'} ? 'badge-role-admin' : 'badge-role-staff'"
                               th:text="${row.role == 'ADMIN' ? 'Quản trị viên' : 'Nhân viên'}">Nhân viên</span>
                     </td>
+                    <td th:text="${row.managerName}">Admin</td>
                     <td>
                         <span class="badge" th:classappend="${row.status == 'ACTIVE'} ? 'badge-status-active' : 'badge-status-inactive'"
                               th:text="${row.status == 'ACTIVE' ? 'Hoạt động' : 'Ngừng hoạt động'}">Hoạt động</span>
@@ -73,6 +74,7 @@
                 <p><strong>Họ và tên:</strong> <span th:text="${viewRow.fullName}"></span></p>
                 <p><strong>Tên đăng nhập:</strong> <span th:text="${viewRow.username}"></span></p>
                 <p><strong>Vai trò:</strong> <span th:text="${viewRow.role == 'ADMIN' ? 'Quản trị viên' : 'Nhân viên'}"></span></p>
+                <p><strong>Quản lý bởi:</strong> <span th:text="${viewRow.managerName}"></span></p>
                 <p><strong>Trạng thái:</strong> <span th:text="${viewRow.status == 'ACTIVE' ? 'Hoạt động' : 'Ngừng hoạt động'}"></span></p>
             </article>
         </section>
@@ -92,12 +94,6 @@
 
             <label for="password">Mật khẩu</label>
             <input id="password" name="password" type="password" th:required="${!isEdit}" placeholder="Nhập mật khẩu mới nếu muốn đổi">
-
-            <label for="roleType">Vai trò</label>
-            <select id="roleType" name="role">
-                <option value="ADMIN" th:selected="${isEdit ? editRow.role == 'ADMIN' : false}">Quản trị viên</option>
-                <option value="STAFF" th:selected="${isEdit ? editRow.role == 'STAFF' : true}">Nhân viên</option>
-            </select>
 
             <label for="statusType">Trạng thái</label>
             <select id="statusType" name="status">

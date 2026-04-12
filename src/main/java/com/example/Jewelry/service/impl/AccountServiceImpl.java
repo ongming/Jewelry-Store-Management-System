@@ -54,6 +54,6 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Optional<Account> login(String username, String password) {
-        return accountRepository.findByUsernameAndPasswordHash(username, password);
+        return accountRepository.findByUsernameAndPasswordHashAndStatusIgnoreCase(username, password, "ACTIVE");
     }
 }
