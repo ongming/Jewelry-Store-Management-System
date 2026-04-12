@@ -22,7 +22,8 @@ CREATE TABLE account (
     username NVARCHAR(100) UNIQUE NOT NULL,
     password_hash NVARCHAR(255) NOT NULL,
     full_name NVARCHAR(150) NOT NULL,
-    role_name NVARCHAR(30) NOT NULL
+    role_name NVARCHAR(30) NOT NULL,
+    status NVARCHAR(20) DEFAULT 'ACTIVE' NOT NULL
 );
 
 -- ========================
@@ -201,9 +202,9 @@ CREATE TABLE payment (
 -- ========================
 
 -- ACCOUNT
-INSERT INTO account VALUES
-(N'admin', N'123', N'Admin', N'ADMIN'),
-(N'staff1', N'123', N'Staff 1', N'STAFF');
+INSERT INTO account (username, password_hash, full_name, role_name, status) VALUES
+(N'admin', N'123', N'Admin', N'ADMIN', N'ACTIVE'),
+(N'staff1', N'123', N'Staff 1', N'STAFF', N'ACTIVE');
 
 -- STAFF
 INSERT INTO staff VALUES

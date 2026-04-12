@@ -31,6 +31,9 @@ public class Account {
     @Column(name = "role_name", nullable = false, length = 30)
     private String roleName;
 
+    @Column(name = "status", nullable = false, length = 20)
+    private String status = "ACTIVE";
+
     public Account() {
     }
 
@@ -40,6 +43,16 @@ public class Account {
         this.passwordHash = passwordHash;
         this.fullName = fullName;
         this.roleName = roleName;
+        this.status = "ACTIVE";
+    }
+
+    public Account(int accountId, String username, String passwordHash, String fullName, String roleName, String status) {
+        this.accountId = accountId;
+        this.username = username;
+        this.passwordHash = passwordHash;
+        this.fullName = fullName;
+        this.roleName = roleName;
+        this.status = status != null ? status : "ACTIVE";
     }
 
     public int getAccountId() {
@@ -80,6 +93,14 @@ public class Account {
 
     public void setRoleName(String roleName) {
         this.roleName = roleName;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public boolean login() {

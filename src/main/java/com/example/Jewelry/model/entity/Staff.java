@@ -34,7 +34,7 @@ public class Staff extends Account {
     }
 
     public Staff(int accountId, String username, String passwordHash, String fullName, String roleName, int staffId) {
-        super(accountId, username, passwordHash, fullName, roleName);
+        super(accountId, username, passwordHash, fullName, roleName, "ACTIVE");
         this.staffId = staffId;
     }
 

@@ -45,8 +45,6 @@ public class AdminCatalogController {
     private final AdminService adminService;
     private final StaffRepository staffRepository;
 
-    private final Map<Integer, String> accountStatuses = new ConcurrentHashMap<>();
-
     public AdminCatalogController(ProductService productService,
                                   CategoryService categoryService,
                                   AccountService accountService,
@@ -266,20 +264,20 @@ public class AdminCatalogController {
             admin.setUsername(username.trim());
             admin.setPasswordHash(password.trim());
             admin.setRoleName("ADMIN");
+            admin.setStatus(normalizeStatus(status));
             admin.setStaffId(nextStaffId);
             admin.setManagerAdmin(null);
             adminService.save(admin);
-            accountStatuses.put(admin.getAccountId(), normalizeStatus(status));
         } else {
             Staff staff = new Staff();
             staff.setFullName(fullName.trim());
             staff.setUsername(username.trim());
             staff.setPasswordHash(password.trim());
             staff.setRoleName("STAFF");
+            staff.setStatus(normalizeStatus(status));
             staff.setStaffId(nextStaffId);
             staff.setManagerAdmin(getPrimaryAdmin());
             staffService.save(staff);
-            accountStatuses.put(staff.getAccountId(), normalizeStatus(status));
         }
 
         redirectAttributes.addFlashAttribute("success", "Đã thêm tài khoản thành công.");
@@ -290,9 +288,9 @@ public class AdminCatalogController {
     @Transactional
     public String updateAccount(@PathVariable Integer accountId,
                                 @RequestParam String fullName,
-                                @RequestParam String password,
+                                @RequestParam(required = false) String password,
                                 @RequestParam String role,
-                                @RequestParam(defaultValue = "ACTIVE") String status,
+                                @RequestParam(required = false, defaultValue = "ACTIVE") String status,
                                 RedirectAttributes redirectAttributes) {
         Account account = accountService.findById(accountId).orElse(null);
         if (account == null) {
@@ -311,8 +309,8 @@ public class AdminCatalogController {
         if (password != null && !password.isBlank()) {
             account.setPasswordHash(password.trim());
         }
+        account.setStatus(normalizeStatus(status));
         accountService.save(account);
-        accountStatuses.put(accountId, normalizeStatus(status));
 
         redirectAttributes.addFlashAttribute("success", "Cập nhật tài khoản thành công.");
         return "redirect:/admin/staff-management";
@@ -324,7 +322,6 @@ public class AdminCatalogController {
                                 RedirectAttributes redirectAttributes) {
         try {
             accountService.deleteById(accountId);
-            accountStatuses.remove(accountId);
             redirectAttributes.addFlashAttribute("success", "Đã xóa tài khoản.");
         } catch (Exception exception) {
             redirectAttributes.addFlashAttribute("error", "Không thể xóa tài khoản: " + exception.getMessage());
@@ -334,7 +331,7 @@ public class AdminCatalogController {
 
     private AccountRow toRow(Account account) {
         String role = normalizeRole(account.getRoleName());
-        String status = accountStatuses.computeIfAbsent(account.getAccountId(), key -> "ACTIVE");
+        String status = account.getStatus() != null ? account.getStatus() : "ACTIVE";
         String avatar = "https://ui-avatars.com/api/?name="
             + URLEncoder.encode(account.getFullName(), StandardCharsets.UTF_8)
             + "&background=1a1a1a&color=d4af37";
