@@ -34,7 +34,7 @@
         <aside class="summary-panel">
             <h3>Tổng cộng</h3>
             <p th:text="${#numbers.formatDecimal(totalPrice, 0, 'COMMA', 0, 'POINT')} + ' VND'">0 VND</p>
-            <a class="btn-gold" th:href="@{/guest/checkout}">Thanh toán</a>
+            <a class="btn-gold" th:href="@{/checkout}">Thanh toán</a>
         </aside>
     </div>
 </section>

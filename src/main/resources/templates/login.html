@@ -17,7 +17,7 @@
 
         <p th:if="${error}" th:text="${error}" class="error"></p>
 
-        <form th:action="@{/login}" method="post" class="login-form" id="loginForm">
+        <form th:action="@{/auth/login}" method="post" class="login-form" id="loginForm">
             <div class="input-group">
                 <input id="username" name="username" type="text" autocomplete="username" th:value="${username}" required>
                 <label for="username">Tên đăng nhập</label>
@@ -40,6 +40,10 @@
                 <span class="btn-text">Đăng nhập</span>
                 <span class="spinner" aria-hidden="true"></span>
             </button>
+
+            <div class="back-store-row">
+                <a class="forgot-link" th:href="@{/home}">Về lại trang bán hàng</a>
+            </div>
         </form>
     </section>
 </main>

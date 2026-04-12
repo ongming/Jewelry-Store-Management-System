@@ -24,7 +24,19 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public List<Customer> findAll() {
-        return CustomerRepository.findAll();
+        return CustomerRepository.findAllByOrderByCustomerNameAsc();
+    }
+
+    @Override
+    public List<Customer> search(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return findAll();
+        }
+        String normalized = keyword.trim();
+        return CustomerRepository.findByCustomerNameContainingIgnoreCaseOrPhoneContainingIgnoreCaseOrderByCustomerNameAsc(
+            normalized,
+            normalized
+        );
     }
 
     @Override

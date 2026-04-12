@@ -11,6 +11,8 @@ public interface CustomerService {
 
     List<Customer> findAll();
 
+    List<Customer> search(String keyword);
+
     Customer save(Customer entity);
 
     void deleteById(Integer id);

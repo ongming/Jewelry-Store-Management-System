@@ -9,11 +9,13 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @Component
 public class RoleInterceptor implements HandlerInterceptor {
 
+    private static final String LOGIN_URL = "/auth/login";
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String uri = request.getRequestURI();
 
-        if (!uri.startsWith("/admin") && !uri.startsWith("/staff")) {
+        if (!isProtectedPath(uri)) {
             return true;
         }
 
@@ -21,22 +23,44 @@ public class RoleInterceptor implements HandlerInterceptor {
         String roleName = session == null ? null : (String) session.getAttribute("roleName");
 
         if (roleName == null || roleName.isBlank()) {
-            response.sendRedirect("/login");
+            response.sendRedirect(LOGIN_URL);
             return false;
         }
 
-        if (uri.startsWith("/admin") && !"ADMIN".equalsIgnoreCase(roleName)) {
+        if (isAdminOnlyPath(uri) && !"ADMIN".equalsIgnoreCase(roleName)) {
             response.sendRedirect("/staff/dashboard");
             return false;
         }
 
-        if (uri.startsWith("/staff")
+        if (isStaffOrAdminPath(uri)
             && !("STAFF".equalsIgnoreCase(roleName) || "ADMIN".equalsIgnoreCase(roleName))) {
-            response.sendRedirect("/login");
+            response.sendRedirect(LOGIN_URL);
             return false;
         }
 
         return true;
+    }
+
+    private boolean isProtectedPath(String uri) {
+        return isAdminOnlyPath(uri) || isStaffOrAdminPath(uri);
+    }
+
+    private boolean isAdminOnlyPath(String uri) {
+        return uri.startsWith("/dashboard/admin")
+            || uri.startsWith("/products/manage")
+            || uri.startsWith("/products/categories")
+            || uri.startsWith("/auth/accounts")
+            || uri.startsWith("/admin");
+    }
+
+    private boolean isStaffOrAdminPath(String uri) {
+        return uri.equals("/dashboard")
+            || uri.startsWith("/dashboard/staff")
+            || uri.startsWith("/products/staff")
+            || uri.startsWith("/orders")
+            || uri.startsWith("/customers")
+            || uri.startsWith("/pos")
+            || uri.startsWith("/staff");
     }
 }
 

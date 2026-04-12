@@ -83,7 +83,7 @@
     <div class="modal-card">
         <h3 th:text="${isEdit} ? 'Chỉnh sửa tài khoản' : 'Thêm tài khoản mới'">Biểu mẫu</h3>
         <form method="post"
-              th:action="${isEdit} ? @{/admin/staff-management/{id}/update(id=${editRow.accountId})} : @{/admin/staff-management}">
+                            th:action="${isEdit} ? @{/admin/staff-management/{id}/update(id=${editRow.accountId})} : @{/admin/staff-management}">
             <label for="fullName">Họ và tên</label>
             <input id="fullName" name="fullName" type="text" required th:value="${isEdit ? editRow.fullName : ''}">
 

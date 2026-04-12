@@ -152,6 +152,11 @@ h1 {
     color: #ffe4b0;
 }
 
+.back-store-row {
+    margin-top: 0.15rem;
+    text-align: center;
+}
+
 .login-btn {
     margin-top: 0.35rem;
     border: 0;

@@ -28,6 +28,16 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    public List<Order> findByCustomerId(Integer customerId) {
+        return OrderRepository.findByCustomer_CustomerIdOrderByOrderDateDesc(customerId);
+    }
+
+    @Override
+    public boolean existsByCustomerId(Integer customerId) {
+        return OrderRepository.existsByCustomer_CustomerId(customerId);
+    }
+
+    @Override
     public Order save(Order entity) {
         return OrderRepository.save(entity);
     }

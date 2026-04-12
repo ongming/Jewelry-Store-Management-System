@@ -52,6 +52,12 @@ a {
     min-height: 72px;
 }
 
+.header-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .brand {
     font-family: 'Playfair Display', serif;
     font-size: 1.22rem;
@@ -72,9 +78,39 @@ a {
     transition: color 0.3s ease;
 }
 
+.login-link,
+.cart-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid rgba(212, 175, 55, 0.42);
+    padding: 8px 14px;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.login-link {
+    background: transparent;
+    color: var(--gold);
+}
+
+.cart-link {
+    background: rgba(212, 175, 55, 0.08);
+    color: var(--text);
+}
+
 .nav-links a:hover,
+.login-link:hover,
 .cart-link:hover {
     color: var(--gold);
+}
+
+.login-link:hover,
+.cart-link:hover {
+    border-color: rgba(212, 175, 55, 0.7);
+    box-shadow: 0 8px 18px rgba(212, 175, 55, 0.18);
 }
 
 .btn-gold {
@@ -162,6 +198,16 @@ h3 {
 @media (max-width: 820px) {
     .nav-links {
         display: none;
+    }
+
+    .header-actions {
+        gap: 8px;
+    }
+
+    .login-link,
+    .cart-link {
+        padding: 7px 12px;
+        font-size: 0.72rem;
     }
 
     .footer-grid {

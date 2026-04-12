@@ -27,6 +27,17 @@ public class WebStaticResourceConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(roleInterceptor)
-            .addPathPatterns("/admin/**", "/staff/**");
+            .addPathPatterns(
+                "/dashboard/**",
+                "/products/manage/**",
+                "/products/categories/**",
+                "/products/staff",
+                "/orders/**",
+                "/customers/**",
+                "/pos/**",
+                "/auth/accounts/**",
+                "/admin/**",
+                "/staff/**"
+            );
     }
 }

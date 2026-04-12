@@ -1,21 +1,18 @@
 package com.example.Jewelry.controller;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.Jewelry.model.entity.Customer;
 import com.example.Jewelry.model.entity.Inventory;
 import com.example.Jewelry.model.entity.Order;
 import com.example.Jewelry.model.entity.OrderDetail;
 import com.example.Jewelry.model.entity.Product;
-import com.example.Jewelry.model.entity.ProductAttribute;
-import com.example.Jewelry.model.entity.ProductImage;
 import com.example.Jewelry.model.entity.Staff;
-import com.example.Jewelry.service.CategoryService;
 import com.example.Jewelry.service.CustomerService;
 import com.example.Jewelry.service.InventoryService;
 import com.example.Jewelry.service.OrderService;
 import com.example.Jewelry.service.ProductService;
 import com.example.Jewelry.service.StaffService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,12 +20,12 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -38,32 +35,27 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Controller
-public class UiController {
+@RequestMapping({"/orders", "/staff/orders"})
+public class OrderController {
 
-    private static final int PRODUCTS_PAGE_SIZE = 6;
     private static final int LOW_STOCK_THRESHOLD = 5;
 
     private final ProductService productService;
-    private final CategoryService categoryService;
     private final CustomerService customerService;
     private final OrderService orderService;
     private final StaffService staffService;
     private final InventoryService inventoryService;
     private final ObjectMapper objectMapper;
 
-    public UiController(ProductService productService,
-                        CategoryService categoryService,
-                        CustomerService customerService,
-                        OrderService orderService,
-                        StaffService staffService,
-                        InventoryService inventoryService,
-                        ObjectMapper objectMapper) {
+    public OrderController(ProductService productService,
+                           CustomerService customerService,
+                           OrderService orderService,
+                           StaffService staffService,
+                           InventoryService inventoryService,
+                           ObjectMapper objectMapper) {
         this.productService = productService;
-        this.categoryService = categoryService;
         this.customerService = customerService;
         this.orderService = orderService;
         this.staffService = staffService;
@@ -71,141 +63,8 @@ public class UiController {
         this.objectMapper = objectMapper;
     }
 
-    @GetMapping({"/", "/guest/home"})
-    public String home(Model model) {
-        List<ProductView> productViews = productService.findAll().stream()
-            .map(this::toProductView)
-            .toList();
-        model.addAttribute("featuredProducts", productViews.stream().limit(4).toList());
-        model.addAttribute("categories", categoryService.findAll().stream()
-            .map(category -> category.getCategoryName())
-            .toList());
-        return "guest/home";
-    }
-
-    @GetMapping("/guest/products")
-    public String products(@RequestParam(required = false) String category,
-                           @RequestParam(required = false) Integer minPrice,
-                           @RequestParam(required = false) Integer maxPrice,
-                           @RequestParam(defaultValue = "priceAsc") String sort,
-                           @RequestParam(defaultValue = "1") Integer page,
-                           Model model) {
-        List<ProductView> filtered = new ArrayList<>(productService.findAll().stream()
-            .map(this::toProductView)
-            .toList());
-        if (category != null && !category.isBlank()) {
-            filtered.removeIf(product -> !product.category().equalsIgnoreCase(category));
-        }
-        if (minPrice != null) {
-            filtered.removeIf(product -> product.price() < minPrice);
-        }
-        if (maxPrice != null) {
-            filtered.removeIf(product -> product.price() > maxPrice);
-        }
-
-        if ("priceDesc".equalsIgnoreCase(sort)) {
-            filtered.sort(Comparator.comparingInt(ProductView::price).reversed());
-        } else {
-            filtered.sort(Comparator.comparingInt(ProductView::price));
-            sort = "priceAsc";
-        }
-
-        int totalItems = filtered.size();
-        int totalPages = Math.max(1, (int) Math.ceil((double) totalItems / PRODUCTS_PAGE_SIZE));
-        int currentPage = Math.max(1, Math.min(page, totalPages));
-        int fromIndex = (currentPage - 1) * PRODUCTS_PAGE_SIZE;
-        int toIndex = Math.min(fromIndex + PRODUCTS_PAGE_SIZE, totalItems);
-        List<ProductView> pageItems = filtered.subList(fromIndex, toIndex);
-
-        model.addAttribute("products", pageItems);
-        model.addAttribute("selectedCategory", category == null ? "" : category);
-        model.addAttribute("categories", categoryService.findAll().stream()
-            .map(cat -> cat.getCategoryName())
-            .collect(Collectors.toList()));
-        model.addAttribute("minPrice", minPrice);
-        model.addAttribute("maxPrice", maxPrice);
-        model.addAttribute("sort", sort);
-        model.addAttribute("currentPage", currentPage);
-        model.addAttribute("totalPages", totalPages);
-        model.addAttribute("hasPrev", currentPage > 1);
-        model.addAttribute("hasNext", currentPage < totalPages);
-        model.addAttribute("pageItems", buildPageItems(currentPage, totalPages));
-        return "guest/products";
-    }
-
-    @GetMapping("/guest/product-detail/{id}")
-    public String productDetail(@PathVariable Integer id, Model model) {
-        Optional<Product> product = productService.findById(id);
-        if (product.isEmpty()) {
-            return "redirect:/guest/products";
-        }
-
-        Product selectedProduct = product.get();
-        List<ProductImage> detailImages = selectedProduct.getImages() == null
-            ? List.of()
-            : selectedProduct.getImages().stream()
-                .sorted(Comparator.comparing(ProductImage::isPrimary).reversed()
-                    .thenComparingInt(ProductImage::getDisplayOrder))
-                .limit(3)
-                .toList();
-
-        model.addAttribute("product", selectedProduct);
-        model.addAttribute("detailImages", detailImages);
-        model.addAttribute("mainImageUrl", resolveMainImageUrl(detailImages));
-        return "guest/product-detail";
-    }
-
-    @GetMapping("/guest/cart")
-    public String cart(Model model) {
-        List<ProductView> cartItems = productService.findAll().stream()
-            .map(this::toProductView)
-            .limit(2)
-            .toList();
-        model.addAttribute("cartItems", cartItems);
-        model.addAttribute("totalPrice", cartItems.stream().mapToInt(ProductView::price).sum());
-        return "guest/cart";
-    }
-
-    @GetMapping("/guest/checkout")
-    public String checkout(Model model) {
-        int orderTotal = productService.findAll().stream()
-            .map(this::toProductView)
-            .limit(2)
-            .mapToInt(ProductView::price)
-            .sum();
-        model.addAttribute("orderTotal", orderTotal);
-        return "guest/checkout";
-    }
-
-    @GetMapping("/admin/dashboard")
-    public String dashboard(Model model) {
-        model.addAttribute("ordersToday", 18);
-        model.addAttribute("revenueToday", 122_500_000);
-        model.addAttribute("lowStock", 7);
-        model.addAttribute("recentOrders", List.of(
-                new OrderView("OD-2401", "Nguyễn Minh Châu", "Đã xác nhận", 14_800_000),
-                new OrderView("OD-2402", "Trần Khánh Linh", "Đang giao", 9_900_000),
-                new OrderView("OD-2403", "Lê Hoàng Gia", "Chờ xác nhận", 5_400_000)
-        ));
-        return "admin/dashboard";
-    }
-
-    @GetMapping("/staff/dashboard")
-    public String staffDashboard(Model model, HttpSession session) {
-        Integer accountId = (Integer) session.getAttribute("accountId");
-        String roleName = (String) session.getAttribute("roleName");
-        addStaffSummary(model, accountId, roleName);
-        return "staff/dashboard";
-    }
-
-    @GetMapping("/staff/products")
-    public String staffProducts(Model model) {
-        model.addAttribute("products", productService.findAll());
-        return "staff/products";
-    }
-
-    @GetMapping("/staff/orders")
-    public String staffOrders(Model model, HttpSession session) {
+    @GetMapping
+    public String list(Model model, HttpSession session) {
         model.addAttribute("customers", customerService.findAll());
         model.addAttribute("staffProducts", productService.findAll().stream()
             .map(this::toStaffProductView)
@@ -216,37 +75,17 @@ public class UiController {
         return "staff/orders";
     }
 
-    @GetMapping("/staff/customers")
-    public String staffCustomers(Model model) {
-        model.addAttribute("customers", customerService.findAll());
-        return "staff/customers";
-    }
-
-    @PostMapping("/staff/customers")
-    public String createCustomer(@RequestParam String customerName,
-                                 @RequestParam(required = false) String phone,
-                                 @RequestParam(required = false) String address,
-                                 RedirectAttributes redirectAttributes) {
-        Customer customer = new Customer();
-        customer.setCustomerName(customerName.trim());
-        customer.setPhone(phone == null ? null : phone.trim());
-        customer.setAddress(address == null ? null : address.trim());
-        customerService.save(customer);
-        redirectAttributes.addFlashAttribute("success", "Đã thêm khách hàng mới.");
-        return "redirect:/staff/customers";
-    }
-
-    @PostMapping("/staff/orders")
+    @PostMapping
     @Transactional
-    public String createOrder(@RequestParam Integer customerId,
-                              @RequestParam String cartPayload,
-                              @RequestParam(defaultValue = "checkout") String orderAction,
-                              HttpSession session,
-                              RedirectAttributes redirectAttributes) {
+    public String create(@RequestParam Integer customerId,
+                         @RequestParam String cartPayload,
+                         @RequestParam(defaultValue = "checkout") String orderAction,
+                         HttpSession session,
+                         RedirectAttributes redirectAttributes) {
         Staff staff = resolveCurrentStaff(session);
         if (staff == null) {
             redirectAttributes.addFlashAttribute("error", "Phiên đăng nhập đã hết hạn hoặc tài khoản không hợp lệ.");
-            return "redirect:/login";
+            return "redirect:/auth/login";
         }
 
         Customer customer = customerService.findById(customerId).orElse(null);
@@ -335,11 +174,11 @@ public class UiController {
         return "redirect:/staff/orders";
     }
 
-    @PostMapping("/staff/orders/{orderId}/cancel")
+    @PostMapping("/{orderId}/cancel")
     @Transactional
-    public String cancelOrder(@PathVariable Integer orderId,
-                              HttpSession session,
-                              RedirectAttributes redirectAttributes) {
+    public String cancel(@PathVariable Integer orderId,
+                         HttpSession session,
+                         RedirectAttributes redirectAttributes) {
         Order order = orderService.findById(orderId).orElse(null);
         if (order == null) {
             redirectAttributes.addFlashAttribute("error", "Không tìm thấy đơn hàng cần hủy.");
@@ -368,25 +207,77 @@ public class UiController {
         return "redirect:/staff/orders";
     }
 
-    private void addStaffSummary(Model model, Integer accountId, String roleName) {
-        List<Order> allOrders = orderService.findAll().stream()
-            .filter(order -> canManageOrder(order, accountId, roleName))
-            .toList();
-        LocalDate today = LocalDate.now();
-        long todayOrders = allOrders.stream()
-            .filter(order -> order.getOrderDate() != null)
-            .filter(order -> order.getOrderDate().toLocalDate().isEqual(today))
-            .count();
+    @PostMapping("/{orderId}/checkout")
+    @Transactional
+    public String checkout(@PathVariable Integer orderId,
+                           HttpSession session,
+                           RedirectAttributes redirectAttributes) {
+        Order order = orderService.findById(orderId).orElse(null);
+        if (order == null) {
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy đơn hàng cần thanh toán.");
+            return "redirect:/staff/orders";
+        }
 
-        BigDecimal revenueToday = allOrders.stream()
-            .filter(order -> order.getOrderDate() != null)
-            .filter(order -> order.getOrderDate().toLocalDate().isEqual(today))
-            .map(Order::getFinalTotal)
-            .filter(java.util.Objects::nonNull)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        Integer accountId = (Integer) session.getAttribute("accountId");
+        String roleName = (String) session.getAttribute("roleName");
+        if (!canManageOrder(order, accountId, roleName)) {
+            redirectAttributes.addFlashAttribute("error", "Bạn không có quyền thao tác đơn hàng này.");
+            return "redirect:/staff/orders";
+        }
 
-        model.addAttribute("todayOrders", todayOrders);
-        model.addAttribute("todayRevenue", revenueToday);
+        String currentStatus = order.getStatus() == null ? "PENDING" : order.getStatus().trim().toUpperCase(Locale.ROOT);
+        if ("PAID".equals(currentStatus)) {
+            redirectAttributes.addFlashAttribute("error", "Đơn hàng này đã thanh toán trước đó.");
+            return "redirect:/staff/orders";
+        }
+        if ("CANCELLED".equals(currentStatus)) {
+            redirectAttributes.addFlashAttribute("error", "Không thể thanh toán đơn đã hủy.");
+            return "redirect:/staff/orders";
+        }
+
+        if (order.getOrderDetails() == null || order.getOrderDetails().isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Đơn hàng không có chi tiết sản phẩm để thanh toán.");
+            return "redirect:/staff/orders";
+        }
+
+        for (OrderDetail detail : order.getOrderDetails()) {
+            Product product = detail.getProduct();
+            if (product == null) {
+                redirectAttributes.addFlashAttribute("error", "Đơn hàng có dòng sản phẩm không hợp lệ.");
+                return "redirect:/staff/orders";
+            }
+
+            Inventory inventory = product.getInventory();
+            int stock = inventory == null ? 0 : Math.max(0, inventory.getQuantityStock());
+            if (detail.getQuantity() > stock) {
+                redirectAttributes.addFlashAttribute(
+                    "error",
+                    "Không đủ tồn kho cho " + product.getProductName() + ". Còn " + stock + "."
+                );
+                return "redirect:/staff/orders";
+            }
+        }
+
+        BigDecimal total = BigDecimal.ZERO;
+        for (OrderDetail detail : order.getOrderDetails()) {
+            Product product = detail.getProduct();
+            Inventory inventory = product.getInventory();
+            inventory.updateStock(inventory.getQuantityStock() - detail.getQuantity());
+            inventoryService.save(inventory);
+
+            BigDecimal unitPrice = detail.getUnitPrice() == null ? BigDecimal.ZERO : detail.getUnitPrice();
+            total = total.add(unitPrice.multiply(BigDecimal.valueOf(Math.max(0, detail.getQuantity()))));
+        }
+
+        order.setFinalTotal(total);
+        order.setStatus("PAID");
+        orderService.save(order);
+
+        redirectAttributes.addFlashAttribute(
+            "success",
+            "Đã thanh toán đơn " + order.getOrderNumber() + " - " + formatCurrency(order.getFinalTotal())
+        );
+        return "redirect:/staff/orders";
     }
 
     private List<StaffOrderView> buildStaffOrderViews(HttpSession session) {
@@ -430,6 +321,7 @@ public class UiController {
             : order.getOrderDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
         String status = order.getStatus() == null ? "PENDING" : order.getStatus().trim().toUpperCase(Locale.ROOT);
         boolean canCancel = "PENDING".equals(status);
+        boolean canCheckout = "PENDING".equals(status);
 
         return new StaffOrderView(
             order.getOrderId(),
@@ -439,6 +331,7 @@ public class UiController {
             order.getFinalTotal() == null ? BigDecimal.ZERO : order.getFinalTotal(),
             dateDisplay,
             canCancel,
+            canCheckout,
             linesJson
         );
     }
@@ -512,20 +405,13 @@ public class UiController {
         return String.format("%,.0f VND", amount);
     }
 
-    public record ProductView(Long id, String category, String productName, int price,
-                              String description, String material, String weight, String imageUrl) {
-    }
-
-    public record OrderView(String code, String customer, String status, int amount) {
-    }
-
     public record StaffProductView(Integer productId,
-                                  String productCode,
-                                  String productName,
-                                  String categoryName,
-                                  BigDecimal basePrice,
-                                  int stock,
-                                  boolean lowStock) {
+                                   String productCode,
+                                   String productName,
+                                   String categoryName,
+                                   BigDecimal basePrice,
+                                   int stock,
+                                   boolean lowStock) {
     }
 
     public record StaffOrderView(Integer orderId,
@@ -535,6 +421,7 @@ public class UiController {
                                  BigDecimal finalTotal,
                                  String orderDate,
                                  boolean canCancel,
+                                 boolean canCheckout,
                                  String invoiceLinesJson) {
     }
 
@@ -548,111 +435,5 @@ public class UiController {
     }
 
     private record PendingOrderLine(Product product, Inventory inventory, int quantity, BigDecimal unitPrice) {
-    }
-
-    private ProductView toProductView(Product product) {
-        String categoryName = product.getCategory() != null ? product.getCategory().getCategoryName() : "Khác";
-        String imageUrl = (product.getImageUrl() == null || product.getImageUrl().isBlank())
-            ? "https://placehold.co/800x600?text=No+Image"
-            : product.getImageUrl();
-
-        String description = readAttribute(product, "Description", "Mo ta", "Mô tả")
-            .orElse("Sản phẩm trang sức cao cấp.");
-        String material = readAttribute(product, "Material", "Chat lieu", "Chất liệu")
-            .orElse("Đang cập nhật");
-        String weight = readAttribute(product, "Weight", "Trong luong", "Trọng lượng")
-            .orElse("Đang cập nhật");
-
-        return new ProductView(
-            (long) product.getProductId(),
-            categoryName,
-            product.getProductName(),
-            product.getBasePrice().intValue(),
-            description,
-            material,
-            weight,
-            imageUrl
-        );
-    }
-
-    private Optional<String> readAttribute(Product product, String... names) {
-        if (product.getAttributes() == null || product.getAttributes().isEmpty()) {
-            return Optional.empty();
-        }
-
-        for (ProductAttribute attribute : product.getAttributes()) {
-            if (attribute.getAttributeName() == null) {
-                continue;
-            }
-            for (String name : names) {
-                if (attribute.getAttributeName().equalsIgnoreCase(name) && attribute.getAttributeValue() != null) {
-                    return Optional.of(attribute.getAttributeValue());
-                }
-            }
-        }
-        return Optional.empty();
-    }
-
-    private List<PageItem> buildPageItems(int currentPage, int totalPages) {
-        List<PageItem> items = new ArrayList<>();
-        if (totalPages <= 7) {
-            for (int page = 1; page <= totalPages; page++) {
-                items.add(PageItem.page(page, page == currentPage));
-            }
-            return items;
-        }
-
-        items.add(PageItem.page(1, currentPage == 1));
-
-        if (currentPage > 3) {
-            items.add(PageItem.ofEllipsis());
-        }
-
-        int start = Math.max(2, currentPage - 1);
-        int end = Math.min(totalPages - 1, currentPage + 1);
-
-        if (currentPage <= 3) {
-            start = 2;
-            end = 4;
-        }
-        if (currentPage >= totalPages - 2) {
-            start = totalPages - 3;
-            end = totalPages - 1;
-        }
-
-        for (int page = start; page <= end; page++) {
-            items.add(PageItem.page(page, page == currentPage));
-        }
-
-        if (currentPage < totalPages - 2) {
-            items.add(PageItem.ofEllipsis());
-        }
-
-        items.add(PageItem.page(totalPages, currentPage == totalPages));
-        return items;
-    }
-
-    private String resolveMainImageUrl(List<ProductImage> images) {
-        if (images == null || images.isEmpty()) {
-            return "https://placehold.co/800x600?text=No+Image";
-        }
-
-        return images.stream()
-            .filter(ProductImage::isPrimary)
-            .findFirst()
-            .or(() -> images.stream().findFirst())
-            .map(ProductImage::getImageUrl)
-            .filter(url -> url != null && !url.isBlank())
-            .orElse("https://placehold.co/800x600?text=No+Image");
-    }
-
-    public record PageItem(Integer page, boolean active, boolean ellipsis) {
-        public static PageItem page(int page, boolean active) {
-            return new PageItem(page, active, false);
-        }
-
-        public static PageItem ofEllipsis() {
-            return new PageItem(null, false, true);
-        }
     }
 }

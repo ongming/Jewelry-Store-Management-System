@@ -11,6 +11,10 @@ public interface OrderService {
 
     List<Order> findAll();
 
+    List<Order> findByCustomerId(Integer customerId);
+
+    boolean existsByCustomerId(Integer customerId);
+
     Order save(Order entity);
 
     void deleteById(Integer id);

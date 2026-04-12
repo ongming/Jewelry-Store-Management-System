@@ -19,7 +19,7 @@
     <div class="products-layout">
         <aside class="filter-panel lux-card">
             <h3>Bộ lọc thông minh</h3>
-            <form th:action="@{/guest/products}" method="get" class="lux-filter-form">
+            <form th:action="@{/products}" method="get" class="lux-filter-form">
                 <label for="category"><span>◈</span> Danh mục</label>
                 <select id="category" name="category">
                     <option value="">Tất cả</option>
@@ -54,14 +54,14 @@
         <div>
             <div class="product-grid">
                 <article class="product-card lux-card" th:each="item : ${products}">
-                    <a class="product-image-wrap" th:href="@{/guest/product-detail/{id}(id=${item.id})}">
+                    <a class="product-image-wrap" th:href="@{/products/{id}(id=${item.id})}">
                         <img th:src="${item.imageUrl}" th:alt="${item.productName}">
                     </a>
                     <div class="product-card-content">
                         <small class="product-category" th:text="${item.category}">NHẪN</small>
                         <h3 th:text="${item.productName}">Tên sản phẩm</h3>
                         <p class="product-price" th:text="${#numbers.formatDecimal(item.price, 0, 'COMMA', 0, 'POINT')} + ' VND'">0 VND</p>
-                        <a class="explore-link" th:href="@{/guest/product-detail/{id}(id=${item.id})}">Khám phá →</a>
+                        <a class="explore-link" th:href="@{/products/{id}(id=${item.id})}">Khám phá →</a>
                     </div>
                 </article>
             </div>
@@ -70,18 +70,18 @@
 
             <div class="pagination" th:if="${totalPages > 1}">
                 <a th:if="${hasPrev}"
-                   th:href="@{/guest/products(category=${selectedCategory},minPrice=${minPrice},maxPrice=${maxPrice},sort=${sort},page=${currentPage - 1})}">
+                   th:href="@{/products(category=${selectedCategory},minPrice=${minPrice},maxPrice=${maxPrice},sort=${sort},page=${currentPage - 1})}">
                     Trang trước
                 </a>
                 <span th:each="item : ${pageItems}">
                     <span class="dots" th:if="${item.ellipsis}">...</span>
                     <a th:if="${!item.ellipsis}"
-                       th:href="@{/guest/products(category=${selectedCategory},minPrice=${minPrice},maxPrice=${maxPrice},sort=${sort},page=${item.page})}"
+                       th:href="@{/products(category=${selectedCategory},minPrice=${minPrice},maxPrice=${maxPrice},sort=${sort},page=${item.page})}"
                        th:classappend="${item.active} ? 'active-page' : ''"
                        th:text="${item.page}">1</a>
                 </span>
                 <a th:if="${hasNext}"
-                   th:href="@{/guest/products(category=${selectedCategory},minPrice=${minPrice},maxPrice=${maxPrice},sort=${sort},page=${currentPage + 1})}">
+                   th:href="@{/products(category=${selectedCategory},minPrice=${minPrice},maxPrice=${maxPrice},sort=${sort},page=${currentPage + 1})}">
                     Trang sau
                 </a>
             </div>
