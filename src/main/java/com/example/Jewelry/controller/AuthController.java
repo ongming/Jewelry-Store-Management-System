@@ -46,17 +46,25 @@ public class AuthController {
         this.staffRepository = staffRepository;
     }
 
-    @GetMapping("/auth/login")
+    @GetMapping({"/auth/login", "/login"})
     public String loginPage() {
         return "login";
     }
 
-    @PostMapping("/auth/login")
+    @PostMapping({"/auth/login", "/login"})
     public String login(@RequestParam String username,
                         @RequestParam String password,
                         HttpSession session,
                         Model model) {
-        Account account = accountService.login(username, password).orElse(null);
+        Account account;
+        try {
+            account = accountService.login(username, password).orElse(null);
+        } catch (RuntimeException runtimeException) {
+            model.addAttribute("error", "Không thể xác thực do lỗi dữ liệu. Vui lòng kiểm tra lại DB sau merge.");
+            model.addAttribute("username", username);
+            return "login";
+        }
+
         if (account == null) {
             model.addAttribute("error", "Tên đăng nhập hoặc mật khẩu không đúng.");
             model.addAttribute("username", username);
@@ -78,7 +86,7 @@ public class AuthController {
         return "redirect:/home";
     }
 
-    @GetMapping("/auth/logout")
+    @GetMapping({"/auth/logout", "/logout"})
     public String logout(HttpSession session) {
         session.invalidate();
         return "redirect:/auth/login";
