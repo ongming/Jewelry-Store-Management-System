@@ -68,7 +68,7 @@ public class AccountStatePatternTest {
         account.setState(new ActiveState());
         account.setStatus("ACTIVE");
         
-        account.suspendAccount();
+        account.suspend();
         
         assertEquals("SUSPENDED", account.getStatus());
         assertEquals("SUSPENDED", account.getAccountStateName());
@@ -81,7 +81,7 @@ public class AccountStatePatternTest {
         account.setState(new SuspendedState());
         account.setStatus("SUSPENDED");
         
-        account.activateAccount();
+        account.activate();
         
         assertEquals("ACTIVE", account.getStatus());
         assertEquals("ACTIVE", account.getAccountStateName());
@@ -94,7 +94,7 @@ public class AccountStatePatternTest {
         account.setState(new ActiveState());
         account.setStatus("ACTIVE");
         
-        account.lockAccount();
+        account.lock();
         
         assertEquals("LOCKED", account.getStatus());
         assertEquals("LOCKED", account.getAccountStateName());
@@ -107,7 +107,7 @@ public class AccountStatePatternTest {
         account.setState(new LockedOutState());
         account.setStatus("LOCKED");
         
-        account.activateAccount();
+        account.activate();
         
         assertEquals("ACTIVE", account.getStatus());
         assertEquals("ACTIVE", account.getAccountStateName());
@@ -119,15 +119,15 @@ public class AccountStatePatternTest {
     void testComplexTransitions() {
         // ACTIVE → SUSPENDED
         account.setState(new ActiveState());
-        account.suspendAccount();
+        account.suspend();
         assertEquals("SUSPENDED", account.getAccountStateName());
         
         // SUSPENDED → LOCKED
-        account.lockAccount();
+        account.lock();
         assertEquals("LOCKED", account.getAccountStateName());
         
         // LOCKED → ACTIVE
-        account.activateAccount();
+        account.activate();
         assertEquals("ACTIVE", account.getAccountStateName());
         assertTrue(account.canLogin());
     }

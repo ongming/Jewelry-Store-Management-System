@@ -3,6 +3,7 @@ package com.example.Jewelry.controller;
 import com.example.Jewelry.model.entity.Account;
 import com.example.Jewelry.model.entity.Admin;
 import com.example.Jewelry.model.entity.Staff;
+import com.example.Jewelry.model.enums.AccountStatusEnum;
 import com.example.Jewelry.repository.StaffRepository;
 import com.example.Jewelry.service.AccountService;
 import com.example.Jewelry.service.AdminService;
@@ -68,6 +69,14 @@ public class AuthController {
 
         if (account == null) {
             model.addAttribute("error", "Tên đăng nhập hoặc mật khẩu không đúng.");
+            model.addAttribute("username", username);
+            return "login";
+        }
+
+        // Áp dụng State Pattern: Kiểm tra xem trạng thái tài khoản có cho phép đăng nhập không
+        if (!account.canLogin()) {
+            AccountStatusEnum statusEnum = AccountStatusEnum.fromString(account.getStatus());
+            model.addAttribute("error", statusEnum.getIcon() + " " + statusEnum.getDescription());
             model.addAttribute("username", username);
             return "login";
         }
@@ -266,18 +275,31 @@ public class AuthController {
 
     private AccountRow toRow(Staff staff) {
         String status = staff.getStatus() == null ? "ACTIVE" : normalizeStatus(staff.getStatus());
+        String displayName;
+        if ("INACTIVE".equals(status)) {
+            displayName = "Chưa kích hoạt";
+        } else {
+            displayName = AccountStatusEnum.fromString(status).getDisplayName();
+        }
         String avatar = "https://ui-avatars.com/api/?name="
             + URLEncoder.encode(staff.getFullName(), StandardCharsets.UTF_8)
             + "&background=1a1a1a&color=d4af37";
         String managerName = staff.getManagerAdmin() == null ? "-" : staff.getManagerAdmin().getFullName();
-        return new AccountRow(staff.getAccountId(), staff.getFullName(), staff.getUsername(), "STAFF", status, avatar, managerName);
+        return new AccountRow(staff.getAccountId(), staff.getFullName(), staff.getUsername(), "STAFF", status, displayName, avatar, managerName);
     }
 
     private String normalizeStatus(String status) {
         if (status == null) {
             return "ACTIVE";
         }
-        return "INACTIVE".equalsIgnoreCase(status.trim()) ? "INACTIVE" : "ACTIVE";
+        status = status.trim().toUpperCase();
+        if (status.equals("SUSPENDED") || status.equals("LOCKED")) {
+            return status;
+        }
+        if (status.equals("INACTIVE")) {
+            return "INACTIVE"; // Dành cho các state cũ hoặc đang thêm chức năng
+        }
+        return "ACTIVE";
     }
 
     private Admin resolveCurrentAdmin(HttpSession session) {
@@ -293,6 +315,7 @@ public class AuthController {
                              String username,
                              String role,
                              String status,
+                             String statusDisplayName,
                              String avatarUrl,
                              String managerName) {
     }

@@ -22,4 +22,12 @@ public interface AccountService {
     long count();
 
     Optional<Account> login(String username, String password);
+
+    List<Account> findByStatus(String status);
+
+    void suspendAccount(Integer accountId);
+
+    void activateAccount(Integer accountId);
+
+    void lockAccount(Integer accountId);
 }

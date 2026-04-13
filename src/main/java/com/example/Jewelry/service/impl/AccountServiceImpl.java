@@ -54,6 +54,39 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Optional<Account> login(String username, String password) {
-        return accountRepository.findByUsernameAndPasswordHashAndStatusIgnoreCase(username, password, "ACTIVE");
+        // Tìm tài khoản theo username và mật khẩu
+        return accountRepository.findByUsername(username)
+                .filter(acc -> acc.getPasswordHash().equals(password));
+    }
+
+    @Override
+    public List<Account> findByStatus(String status) {
+        return accountRepository.findAll().stream()
+                .filter(a -> status.equalsIgnoreCase(a.getStatus()))
+                .toList();
+    }
+
+    @Override
+    public void suspendAccount(Integer accountId) {
+        accountRepository.findById(accountId).ifPresent(account -> {
+            account.suspend();
+            accountRepository.save(account);
+        });
+    }
+
+    @Override
+    public void activateAccount(Integer accountId) {
+        accountRepository.findById(accountId).ifPresent(account -> {
+            account.activate();
+            accountRepository.save(account);
+        });
+    }
+
+    @Override
+    public void lockAccount(Integer accountId) {
+        accountRepository.findById(accountId).ifPresent(account -> {
+            account.lock();
+            accountRepository.save(account);
+        });
     }
 }

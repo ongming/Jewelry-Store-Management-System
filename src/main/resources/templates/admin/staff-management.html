@@ -55,8 +55,8 @@
                     </td>
                     <td th:text="${row.managerName}">Admin</td>
                     <td>
-                        <span class="badge" th:classappend="${row.status == 'ACTIVE'} ? 'badge-status-active' : 'badge-status-inactive'"
-                              th:text="${row.status == 'ACTIVE' ? 'Hoạt động' : 'Ngừng hoạt động'}">Hoạt động</span>
+                        <span class="badge" th:classappend="${row.status == 'ACTIVE'} ? 'badge-status-active' : (${row.status == 'SUSPENDED'} ? 'badge-warning' : (${row.status == 'LOCKED'} ? 'badge-danger' : 'badge-status-inactive'))"
+                              th:text="${row.statusDisplayName}">Hoạt động</span>
                     </td>
                     <td class="actions-cell">
                         <a class="btn btn-secondary" th:href="@{/admin/staff-management(editId=${row.accountId},keyword=${keyword},role=${role})}">Sửa</a>
@@ -75,7 +75,7 @@
                 <p><strong>Tên đăng nhập:</strong> <span th:text="${viewRow.username}"></span></p>
                 <p><strong>Vai trò:</strong> <span th:text="${viewRow.role == 'ADMIN' ? 'Quản trị viên' : 'Nhân viên'}"></span></p>
                 <p><strong>Quản lý bởi:</strong> <span th:text="${viewRow.managerName}"></span></p>
-                <p><strong>Trạng thái:</strong> <span th:text="${viewRow.status == 'ACTIVE' ? 'Hoạt động' : 'Ngừng hoạt động'}"></span></p>
+                <p><strong>Trạng thái:</strong> <span th:text="${viewRow.statusDisplayName}"></span></p>
             </article>
         </section>
     </main>
@@ -98,6 +98,8 @@
             <label for="statusType">Trạng thái</label>
             <select id="statusType" name="status">
                 <option value="ACTIVE" th:selected="${isEdit ? editRow.status == 'ACTIVE' : true}">Hoạt động</option>
+                <option value="SUSPENDED" th:selected="${isEdit ? editRow.status == 'SUSPENDED' : false}">Tạm khóa</option>
+                <option value="LOCKED" th:selected="${isEdit ? editRow.status == 'LOCKED' : false}">Đã khóa</option>
                 <option value="INACTIVE" th:selected="${isEdit ? editRow.status == 'INACTIVE' : false}">Ngừng hoạt động</option>
             </select>
 
