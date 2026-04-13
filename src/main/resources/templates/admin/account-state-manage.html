@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý trạng thái tài khoản</title>
+    <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/catalog.css}">
+    <link rel="stylesheet" th:href="@{/css/state-pattern.css}">
+    <style>
+        .state-manage-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .state-info-card {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .state-info-card h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .state-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .state-info-row:last-child {
+            border-bottom: none;
+        }
+
+        .state-info-label {
+            font-weight: 600;
+            color: #666;
+        }
+
+        .state-info-value {
+            color: #333;
+        }
+
+        .state-permissions {
+            margin-top: 20px;
+        }
+
+        .state-permissions h4 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .permission-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            gap: 12px;
+        }
+
+        .permission-item .icon {
+            font-size: 20px;
+            min-width: 24px;
+        }
+
+        .permission-item .icon.allowed {
+            color: #28a745;
+        }
+
+        .permission-item .icon.denied {
+            color: #dc3545;
+        }
+
+        .permission-item .label {
+            flex: 1;
+        }
+
+        .state-actions-form {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        .state-actions-form button {
+            flex: 1;
+            min-width: 150px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .state-actions-form button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .state-timeline-vertical {
+            position: relative;
+            padding: 20px 0;
+        }
+
+        .state-timeline-vertical::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #ddd;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding: 12px 0 12px 60px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 16px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ddd;
+            border: 3px solid white;
+        }
+
+        .timeline-item.current::before {
+            background: #28a745;
+            box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.2);
+        }
+
+        .timeline-item .state-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .timeline-item .state-desc {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{fragments/header :: managementSidebar('account-state')}"></aside>
+
+    <main class="admin-main">
+        <header th:replace="~{fragments/header :: managementTopbar('Quản lý trạng thái tài khoản')}"></header>
+
+        <section class="state-manage-container">
+            <div class="state-info-card">
+                <h3>Thông tin tài khoản</h3>
+                <div class="state-info-row">
+                    <span class="state-info-label">ID:</span>
+                    <span class="state-info-value" th:text="${account.accountId}">1</span>
+                </div>
+                <div class="state-info-row">
+                    <span class="state-info-label">Họ tên:</span>
+                    <span class="state-info-value" th:text="${account.fullName}">Nguyễn Văn A</span>
+                </div>
+                <div class="state-info-row">
+                    <span class="state-info-label">Tên đăng nhập:</span>
+                    <span class="state-info-value" th:text="${account.username}">username</span>
+                </div>
+                <div class="state-info-row">
+                    <span class="state-info-label">Vai trò:</span>
+                    <span class="state-info-value" th:text="${account.roleName == 'ADMIN' ? 'Quản trị viên' : 'Nhân viên'}">Admin</span>
+                </div>
+                <div class="state-info-row">
+                    <span class="state-info-label">Trạng thái hiện tại:</span>
+                    <span class="badge state-badge" 
+                          th:classappend="'badge-state-' + ${account.status.toLowerCase()}">
+                        <span th:if="${account.status == 'ACTIVE'}">✅ Hoạt động</span>
+                        <span th:if="${account.status == 'SUSPENDED'}">⏸️ Tạm khóa</span>
+                        <span th:if="${account.status == 'LOCKED'}">🔒 Khóa</span>
+                        <span th:if="${account.status == 'INACTIVE'}">❌ Chưa kích hoạt</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- State Permissions Card -->
+            <div class="state-info-card">
+                <h3>Quyền hạn theo trạng thái</h3>
+                <div class="state-permissions">
+                    <div class="permission-item">
+                        <span class="icon" th:classappend="${canLogin} ? 'allowed' : 'denied'" th:text="${canLogin} ? '✅' : '❌'"></span>
+                        <span class="label">Có thể login vào hệ thống</span>
+                    </div>
+                    <div class="permission-item">
+                        <span class="icon" th:classappend="${canAccessSystem} ? 'allowed' : 'denied'" th:text="${canAccessSystem} ? '✅' : '❌'"></span>
+                        <span class="label">Có thể truy cập hệ thống</span>
+                    </div>
+                    <div class="permission-item">
+                        <span class="icon" th:classappend="${canModifyData} ? 'allowed' : 'denied'" th:text="${canModifyData} ? '✅' : '❌'"></span>
+                        <span class="label">Có thể sửa đổi dữ liệu</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- State Description Card -->
+            <div class="state-info-card">
+                <h3>Mô tả trạng thái</h3>
+                <p class="state-description alert-info" th:if="${currentState == 'ACTIVE'}">
+                    ✅ <strong>ACTIVE (Hoạt động):</strong> Tài khoản này đang hoạt động bình thường. Có thể login, truy cập hệ thống và sửa đổi dữ liệu.
+                </p>
+                <p class="state-description alert-warning" th:if="${currentState == 'SUSPENDED'}">
+                    ⏸️ <strong>SUSPENDED (Tạm khóa):</strong> Tài khoản này đã bị tạm khóa. Không thể login, truy cập hệ thống hoặc sửa đổi dữ liệu. Admin có thể kích hoạt lại.
+                </p>
+                <p class="state-description alert-danger" th:if="${currentState == 'LOCKED'}">
+                    🔒 <strong>LOCKED (Khóa):</strong> Tài khoản này bị khóa do sai mật khẩu quá nhiều lần. Không thể login. Cần admin mở khóa.
+                </p>
+                <p class="state-description alert-secondary" th:if="${currentState == 'INACTIVE'}">
+                    ℹ️ <strong>INACTIVE (Chưa kích hoạt):</strong> Tài khoản này chưa được kích hoạt. Cần kích hoạt để có thể sử dụng.
+                </p>
+            </div>
+
+            <!-- State Timeline Card -->
+            <div class="state-info-card">
+                <h3>Quy trình chuyển đổi trạng thái</h3>
+                <div class="state-timeline-vertical">
+                    <div class="timeline-item" th:classappend="${currentState == 'INACTIVE'} ? 'current' : ''">
+                        <div class="state-name">INACTIVE</div>
+                        <div class="state-desc">Chưa kích hoạt</div>
+                    </div>
+                    <div class="timeline-item" th:classappend="${currentState == 'ACTIVE'} ? 'current' : ''">
+                        <div class="state-name">ACTIVE</div>
+                        <div class="state-desc">Hoạt động</div>
+                    </div>
+                    <div class="timeline-item" th:classappend="${currentState == 'SUSPENDED'} ? 'current' : ''">
+                        <div class="state-name">SUSPENDED</div>
+                        <div class="state-desc">Tạm khóa</div>
+                    </div>
+                    <div class="timeline-item" th:classappend="${currentState == 'LOCKED'} ? 'current' : ''">
+                        <div class="state-name">LOCKED</div>
+                        <div class="state-desc">Khóa</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- State Actions Card -->
+            <div class="state-info-card">
+                <h3>Hành động quản lý</h3>
+                <div class="state-actions-form">
+                    <form method="post" th:if="${currentState == 'ACTIVE'}" th:action="@{/admin/account-state/suspend}">
+                        <input type="hidden" name="accountId" th:value="${account.accountId}">
+                        <button class="btn btn-warning" type="submit">⏸️ Tạm khóa</button>
+                    </form>
+                    <form method="post" th:if="${currentState == 'SUSPENDED' || currentState == 'LOCKED' || currentState == 'INACTIVE'}" th:action="@{/admin/account-state/activate}">
+                        <input type="hidden" name="accountId" th:value="${account.accountId}">
+                        <button class="btn btn-success" type="submit">✅ Kích hoạt</button>
+                    </form>
+                </div>
+                <a class="btn btn-secondary" th:href="@{/admin/account-state/dashboard}" style="display: block; text-align: center; margin-top: 12px;">
+                    ← Quay lại Dashboard
+                </a>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script th:src="@{/js/account-state-manager.js}"></script>
+</body>
+</html>

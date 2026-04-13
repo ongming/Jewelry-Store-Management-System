@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý trạng thái tài khoản</title>
+    <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/catalog.css}">
+    <!-- ✨ STATE PATTERN STYLES -->
+    <link rel="stylesheet" th:href="@{/css/state-pattern.css}">
+    <style>
+        .account-state-dashboard {
+            padding: 20px;
+        }
+
+        .state-filter-container {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .state-filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            background: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .state-filter-btn.active {
+            border-color: #007bff;
+            background: #007bff;
+            color: white;
+        }
+
+        .state-filter-btn:hover {
+            border-color: #007bff;
+        }
+
+        .state-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .state-stat-card {
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .state-stat-card h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .state-stat-card .count {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .state-stat-card.active {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+
+        .state-stat-card.suspended {
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+        }
+
+        .state-stat-card.locked {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+        }
+
+        .state-stat-card.inactive {
+            background: linear-gradient(135deg, #6c757d, #5a6268);
+        }
+
+        .state-account-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .state-account-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border-left: 4px solid #ddd;
+        }
+
+        .state-account-card.active {
+            border-left-color: #28a745;
+        }
+
+        .state-account-card.suspended {
+            border-left-color: #ffc107;
+        }
+
+        .state-account-card.locked {
+            border-left-color: #dc3545;
+        }
+
+        .state-account-card.inactive {
+            border-left-color: #6c757d;
+        }
+
+        .state-account-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            transform: translateY(-4px);
+        }
+
+        .state-account-card h4 {
+            margin: 0 0 8px 0;
+            color: #333;
+        }
+
+        .state-account-card p {
+            margin: 6px 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .state-account-card .badge {
+            display: inline-block;
+            margin-top: 12px;
+        }
+
+        .state-account-actions {
+            margin-top: 16px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .state-account-actions button {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .state-account-actions button:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{fragments/header :: managementSidebar('account-state')}"></aside>
+
+    <main class="admin-main">
+        <header th:replace="~{fragments/header :: managementTopbar('Quản lý trạng thái tài khoản')}"></header>
+
+        <section class="account-state-dashboard">
+            <!-- ✨ STATE STATS -->
+            <div class="state-stats">
+                <div class="state-stat-card active">
+                    <h4>🟢 Hoạt động</h4>
+                    <div class="count" id="activeCount">0</div>
+                </div>
+                <div class="state-stat-card suspended">
+                    <h4>🟡 Tạm khóa</h4>
+                    <div class="count" id="suspendedCount">0</div>
+                </div>
+                <div class="state-stat-card locked">
+                    <h4>🔴 Khóa</h4>
+                    <div class="count" id="lockedCount">0</div>
+                </div>
+                <div class="state-stat-card inactive">
+                    <h4>⚫ Chưa kích hoạt</h4>
+                    <div class="count" id="inactiveCount">0</div>
+                </div>
+            </div>
+
+            <!-- ✨ STATE FILTERS -->
+            <div class="state-filter-container">
+                <button class="state-filter-btn active" data-filter="ALL">Tất cả</button>
+                <button class="state-filter-btn" data-filter="ACTIVE">Hoạt động</button>
+                <button class="state-filter-btn" data-filter="SUSPENDED">Tạm khóa</button>
+                <button class="state-filter-btn" data-filter="LOCKED">Khóa</button>
+                <button class="state-filter-btn" data-filter="INACTIVE">Chưa kích hoạt</button>
+            </div>
+
+            <!-- ✨ STATE ACCOUNT GRID -->
+            <div class="state-account-grid" id="accountGrid">
+                <!-- Populated by JavaScript -->
+            </div>
+        </section>
+    </main>
+</div>
+
+<!-- ✨ STATE PATTERN SCRIPTS -->
+<script th:src="@{/js/account-state-manager.js}"></script>
+<script>
+    // Load and display accounts with their states
+    async function loadAccountStates() {
+        try {
+            const response = await fetch('/api/accounts/all', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                console.error('Failed to load accounts');
+                return;
+            }
+
+            const accounts = await response.json();
+            displayAccountStates(accounts);
+            updateStatistics(accounts);
+        } catch (error) {
+            console.error('Error loading accounts:', error);
+        }
+    }
+
+    function displayAccountStates(accounts) {
+        const grid = document.getElementById('accountGrid');
+        grid.innerHTML = '';
+
+        accounts.forEach(account => {
+            const stateClass = account.status.toLowerCase();
+            const stateName = getStateName(account.status);
+            const stateIcon = getStateIcon(account.status);
+            
+            const cardHtml = `
+                <div class="state-account-card ${stateClass}">
+                    <h4>${account.fullName}</h4>
+                    <p><strong>Tên đăng nhập:</strong> ${account.username}</p>
+                    <p><strong>Vai trò:</strong> ${account.roleName === 'ADMIN' ? 'Quản trị viên' : 'Nhân viên'}</p>
+                    <span class="badge state-badge badge-state-${stateClass}">
+                        ${stateIcon} ${stateName}
+                    </span>
+                    <div class="state-account-actions">
+                        <button class="btn btn-primary" onclick="accountStateManager.getAccountState(${account.accountId})">
+                            Chi tiết
+                        </button>
+                        ${account.status === 'ACTIVE' ? 
+                            `<button class="btn btn-warning" onclick="accountStateManager.showStateActionModal('suspend', ${account.accountId})">Tạm khóa</button>` :
+                        account.status === 'SUSPENDED' ? 
+                            `<button class="btn btn-success" onclick="accountStateManager.showStateActionModal('activate', ${account.accountId})">Kích hoạt</button>` :
+                        account.status === 'LOCKED' ? 
+                            `<button class="btn btn-success" onclick="accountStateManager.showStateActionModal('activate', ${account.accountId})">Mở khóa</button>` :
+                            `<button class="btn btn-success" onclick="accountStateManager.showStateActionModal('activate', ${account.accountId})">Kích hoạt</button>`
+                        }
+                    </div>
+                </div>
+            `;
+            
+            grid.insertAdjacentHTML('beforeend', cardHtml);
+        });
+    }
+
+    function getStateName(status) {
+        const names = {
+            'ACTIVE': 'Hoạt động',
+            'SUSPENDED': 'Tạm khóa',
+            'LOCKED': 'Khóa',
+            'INACTIVE': 'Chưa kích hoạt'
+        };
+        return names[status] || status;
+    }
+
+    function getStateIcon(status) {
+        const icons = {
+            'ACTIVE': '✅',
+            'SUSPENDED': '⏸️',
+            'LOCKED': '🔒',
+            'INACTIVE': '❌'
+        };
+        return icons[status] || '❓';
+    }
+
+    function updateStatistics(accounts) {
+        const stats = {
+            ACTIVE: 0,
+            SUSPENDED: 0,
+            LOCKED: 0,
+            INACTIVE: 0
+        };
+
+        accounts.forEach(account => {
+            if (stats.hasOwnProperty(account.status)) {
+                stats[account.status]++;
+            }
+        });
+
+        document.getElementById('activeCount').textContent = stats.ACTIVE;
+        document.getElementById('suspendedCount').textContent = stats.SUSPENDED;
+        document.getElementById('lockedCount').textContent = stats.LOCKED;
+        document.getElementById('inactiveCount').textContent = stats.INACTIVE;
+    }
+
+    // Filter functionality
+    document.querySelectorAll('.state-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.state-filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const filter = btn.getAttribute('data-filter');
+            filterAccounts(filter);
+        });
+    });
+
+    function filterAccounts(filter) {
+        const cards = document.querySelectorAll('.state-account-card');
+        cards.forEach(card => {
+            if (filter === 'ALL') {
+                card.style.display = '';
+            } else {
+                const status = card.className.split(' ')[1].toUpperCase();
+                if (status === filter) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    // Load on page ready
+    document.addEventListener('DOMContentLoaded', loadAccountStates);
+</script>
+</body>
+</html>

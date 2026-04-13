@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danh sách tài khoản theo trạng thái</title>
+    <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/catalog.css}">
+    <link rel="stylesheet" th:href="@{/css/state-pattern.css}">
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{fragments/header :: managementSidebar('account-state')}"></aside>
+
+    <main class="admin-main">
+        <header th:replace="~{fragments/header :: managementTopbar('Danh sách ' + ${statusName})}"></header>
+
+        <section class="catalog-panel">
+            <div class="catalog-panel__top toolbar-wrap">
+                <h2 th:text="'Danh sách tài khoản ' + ${statusName}"></h2>
+                <a class="btn btn-secondary" th:href="@{/admin/account-state/dashboard}">← Quay lại Dashboard</a>
+            </div>
+
+            <p class="alert success" th:if="${success}" th:text="${success}"></p>
+            <p class="alert error" th:if="${error}" th:text="${error}"></p>
+
+            <table class="staff-table">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Họ và tên</th>
+                    <th>Tên đăng nhập</th>
+                    <th>Vai trò</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="account : ${accounts}">
+                    <td th:text="${account.accountId}">1</td>
+                    <td th:text="${account.fullName}">Nguyễn Văn A</td>
+                    <td th:text="${account.username}">username</td>
+                    <td>
+                        <span class="badge" th:classappend="${account.roleName == 'ADMIN'} ? 'badge-role-admin' : 'badge-role-staff'"
+                              th:text="${account.roleName == 'ADMIN' ? 'Quản trị viên' : 'Nhân viên'}">Nhân viên</span>
+                    </td>
+                    <td>
+                        <span class="badge state-badge" 
+                              th:classappend="'badge-state-' + ${account.status.toLowerCase()}">
+                            <span th:if="${account.status == 'ACTIVE'}">✅ Hoạt động</span>
+                            <span th:if="${account.status == 'SUSPENDED'}">⏸️ Tạm khóa</span>
+                            <span th:if="${account.status == 'LOCKED'}">🔒 Khóa</span>
+                            <span th:if="${account.status == 'INACTIVE'}">❌ Chưa kích hoạt</span>
+                        </span>
+                    </td>
+                    <td class="actions-cell">
+                        <form method="get" th:action="@{/admin/account-state/manage(accountId=${account.accountId})}">
+                            <button class="btn btn-secondary" type="submit">Quản lý</button>
+                        </form>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(accounts)}">
+                    <td colspan="6" class="text-center">Không có tài khoản nào ở trạng thái này</td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</div>
+
+<script th:src="@{/js/account-state-manager.js}"></script>
+</body>
+</html>
