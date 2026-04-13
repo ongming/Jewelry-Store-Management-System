@@ -6,11 +6,13 @@ import com.example.Jewelry.model.entity.Order;
 import com.example.Jewelry.model.entity.OrderDetail;
 import com.example.Jewelry.model.entity.Product;
 import com.example.Jewelry.model.entity.Staff;
+import com.example.Jewelry.model.entity.Voucher;
 import com.example.Jewelry.service.CustomerService;
 import com.example.Jewelry.service.InventoryService;
 import com.example.Jewelry.service.OrderService;
 import com.example.Jewelry.service.ProductService;
 import com.example.Jewelry.service.StaffService;
+import com.example.Jewelry.service.VoucherService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpSession;
@@ -47,6 +49,7 @@ public class OrderController {
     private final OrderService orderService;
     private final StaffService staffService;
     private final InventoryService inventoryService;
+    private final VoucherService voucherService;
     private final ObjectMapper objectMapper;
 
     public OrderController(ProductService productService,
@@ -54,12 +57,14 @@ public class OrderController {
                            OrderService orderService,
                            StaffService staffService,
                            InventoryService inventoryService,
+                           VoucherService voucherService,
                            ObjectMapper objectMapper) {
         this.productService = productService;
         this.customerService = customerService;
         this.orderService = orderService;
         this.staffService = staffService;
         this.inventoryService = inventoryService;
+        this.voucherService = voucherService;
         this.objectMapper = objectMapper;
     }
 
@@ -403,6 +408,98 @@ public class OrderController {
             stock,
             stock < LOW_STOCK_THRESHOLD
         );
+    }
+
+    @PostMapping("/{orderId}/apply-voucher")
+    @Transactional
+    public String applyVoucher(@PathVariable Integer orderId,
+                               @RequestParam String voucherCode,
+                               HttpSession session,
+                               RedirectAttributes redirectAttributes) {
+        try {
+            Order order = orderService.findById(orderId).orElse(null);
+            if (order == null) {
+                redirectAttributes.addFlashAttribute("error", "Không tìm thấy đơn hàng.");
+                return "redirect:/staff/orders";
+            }
+
+            Integer accountId = (Integer) session.getAttribute("accountId");
+            String roleName = (String) session.getAttribute("roleName");
+            if (!canManageOrder(order, accountId, roleName)) {
+                redirectAttributes.addFlashAttribute("error", "Bạn không có quyền thao tác đơn hàng này.");
+                return "redirect:/staff/orders";
+            }
+
+            if (voucherCode == null || voucherCode.isBlank()) {
+                redirectAttributes.addFlashAttribute("error", "Vui lòng nhập mã voucher.");
+                return "redirect:/staff/orders";
+            }
+
+            Voucher voucher = voucherService.findByCode(voucherCode).orElse(null);
+            if (voucher == null) {
+                redirectAttributes.addFlashAttribute("error", "Mã voucher không hợp lệ hoặc không tồn tại.");
+                return "redirect:/staff/orders";
+            }
+
+            order.setVoucher(voucher);
+            BigDecimal currentTotal = order.getFinalTotal() == null ? BigDecimal.ZERO : order.getFinalTotal();
+            BigDecimal discountValue = voucher.getDiscountValue() == null ? BigDecimal.ZERO : voucher.getDiscountValue();
+            BigDecimal newTotal = currentTotal.subtract(discountValue);
+            if (newTotal.compareTo(BigDecimal.ZERO) < 0) {
+                newTotal = BigDecimal.ZERO;
+            }
+            order.setFinalTotal(newTotal);
+            orderService.save(order);
+
+            redirectAttributes.addFlashAttribute("success", 
+                "Áp dụng voucher thành công! Giảm: " + formatCurrency(discountValue) + 
+                " | Tổng tiền sau giảm: " + formatCurrency(newTotal));
+            return "redirect:/staff/orders";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Lỗi áp dụng voucher: " + e.getMessage());
+            return "redirect:/staff/orders";
+        }
+    }
+
+    @PostMapping("/{orderId}/remove-voucher")
+    @Transactional
+    public String removeVoucher(@PathVariable Integer orderId,
+                                HttpSession session,
+                                RedirectAttributes redirectAttributes) {
+        try {
+            Order order = orderService.findById(orderId).orElse(null);
+            if (order == null) {
+                redirectAttributes.addFlashAttribute("error", "Không tìm thấy đơn hàng.");
+                return "redirect:/staff/orders";
+            }
+
+            Integer accountId = (Integer) session.getAttribute("accountId");
+            String roleName = (String) session.getAttribute("roleName");
+            if (!canManageOrder(order, accountId, roleName)) {
+                redirectAttributes.addFlashAttribute("error", "Bạn không có quyền thao tác đơn hàng này.");
+                return "redirect:/staff/orders";
+            }
+
+            if (order.getVoucher() == null) {
+                redirectAttributes.addFlashAttribute("error", "Đơn hàng này không có voucher được áp dụng.");
+                return "redirect:/staff/orders";
+            }
+
+            BigDecimal discountValue = order.getVoucher().getDiscountValue() == null ? BigDecimal.ZERO : order.getVoucher().getDiscountValue();
+            BigDecimal currentTotal = order.getFinalTotal() == null ? BigDecimal.ZERO : order.getFinalTotal();
+            BigDecimal originalTotal = currentTotal.add(discountValue);
+
+            order.setVoucher(null);
+            order.setFinalTotal(originalTotal);
+            orderService.save(order);
+
+            redirectAttributes.addFlashAttribute("success", 
+                "Hủy voucher thành công! Tổng tiền trở lại: " + formatCurrency(originalTotal));
+            return "redirect:/staff/orders";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Lỗi hủy voucher: " + e.getMessage());
+            return "redirect:/staff/orders";
+        }
     }
 
     private String formatCurrency(BigDecimal amount) {

@@ -23,6 +23,11 @@ public class VoucherServiceImpl implements VoucherService {
     }
 
     @Override
+    public Optional<Voucher> findByCode(String code) {
+        return VoucherRepository.findByCodeIgnoreCase(code);
+    }
+
+    @Override
     public List<Voucher> findAll() {
         return VoucherRepository.findAll();
     }

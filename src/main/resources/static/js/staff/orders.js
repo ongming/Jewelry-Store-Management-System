@@ -9,6 +9,7 @@
         productGrid: document.getElementById("productGrid"),
         productEmptyState: document.getElementById("productEmptyState"),
         cartItems: document.getElementById("cartItems"),
+        cartSubtotal: document.getElementById("cartSubtotal"),
         cartTotal: document.getElementById("cartTotal"),
         cartPayload: document.getElementById("cartPayload"),
         orderAction: document.getElementById("orderAction"),
@@ -29,6 +30,11 @@
         invoiceCustomer: document.getElementById("invoiceCustomer"),
         invoiceLines: document.getElementById("invoiceLines"),
         invoiceTotal: document.getElementById("invoiceTotal"),
+        voucherModal: document.getElementById("voucherModal"),
+        voucherForm: document.getElementById("voucherForm"),
+        voucherCode: document.getElementById("voucherCode"),
+        closeVoucherModal: document.getElementById("closeVoucherModal"),
+        cancelVoucherBtn: document.getElementById("cancelVoucherBtn"),
         toastStack: document.getElementById("toastStack")
     };
 
@@ -74,6 +80,31 @@
         return total;
     }
 
+    let currentVoucher = null;
+    let currentDiscount = 0;
+
+    function updateCartDisplay() {
+        const subtotal = currentCartTotal();
+        const total = Math.max(0, subtotal - currentDiscount);
+        
+        if (refs.cartSubtotal) {
+            refs.cartSubtotal.textContent = formatMoney(subtotal);
+        }
+        if (refs.cartTotal) {
+            refs.cartTotal.textContent = formatMoney(total);
+        }
+        
+        const discountDisplay = document.getElementById("discountDisplay");
+        const displayDiscountAmount = document.getElementById("displayDiscountAmount");
+        
+        if (currentDiscount > 0) {
+            if (discountDisplay) discountDisplay.style.display = "block";
+            if (displayDiscountAmount) displayDiscountAmount.textContent = "-" + formatMoney(currentDiscount);
+        } else {
+            if (discountDisplay) discountDisplay.style.display = "none";
+        }
+    }
+
     function syncActionState() {
         const disabled = cart.size === 0;
         refs.saveOrderBtn.disabled = disabled;
@@ -117,7 +148,7 @@
             `).join("");
         }
 
-        refs.cartTotal.textContent = formatMoney(currentCartTotal());
+        updateCartDisplay();
         updatePayload();
         syncActionState();
     }
@@ -381,13 +412,145 @@
 
     refs.closeInvoiceModal.addEventListener("click", () => closeModal(refs.invoiceModal));
 
-    [refs.invoiceModal, refs.clearCartModal].forEach(modal => {
-        modal.addEventListener("click", event => {
-            if (event.target === modal) {
-                closeModal(modal);
-            }
+    // Xử lý áp dụng voucher
+    let currentOrderIdForVoucher = null;
+
+    document.querySelectorAll(".js-apply-voucher").forEach(button => {
+        button.addEventListener("click", () => {
+            currentOrderIdForVoucher = button.dataset.orderId;
+            refs.voucherCode.value = "";
+            openModal(refs.voucherModal);
         });
     });
+
+    if (refs.voucherForm) {
+        refs.voucherForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const voucherCode = refs.voucherCode.value.trim();
+            
+            if (!voucherCode) {
+                alert("Vui lòng nhập mã voucher.");
+                return;
+            }
+
+            if (!currentOrderIdForVoucher) {
+                alert("Không xác định được đơn hàng.");
+                closeModal(refs.voucherModal);
+                return;
+            }
+
+            const form = document.createElement("form");
+            form.method = "POST";
+            form.action = `/staff/orders/${currentOrderIdForVoucher}/apply-voucher`;
+            
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = "voucherCode";
+            input.value = voucherCode;
+            
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
+        });
+    }
+
+    if (refs.closeVoucherModal) {
+        refs.closeVoucherModal.addEventListener("click", () => closeModal(refs.voucherModal));
+    }
+
+    if (refs.cancelVoucherBtn) {
+        refs.cancelVoucherBtn.addEventListener("click", () => closeModal(refs.voucherModal));
+    }
+
+    [refs.invoiceModal, refs.clearCartModal, refs.voucherModal].forEach(modal => {
+        if (modal) {
+            modal.addEventListener("click", event => {
+                if (event.target === modal) {
+                    closeModal(modal);
+                }
+            });
+        }
+    });
+
+    // Xử lý áp dụng voucher cho đơn hiện tại
+    const applyCurrentVoucherBtn = document.getElementById("applyCurrentVoucherBtn");
+    const removeCurrentVoucherBtn = document.getElementById("removeCurrentVoucherBtn");
+    const currentVoucherCodeInput = document.getElementById("currentVoucherCode");
+
+    if (applyCurrentVoucherBtn) {
+        applyCurrentVoucherBtn.addEventListener("click", () => {
+            const voucherCode = currentVoucherCodeInput.value.trim();
+            
+            console.log("DEBUG: Applying voucher with code:", voucherCode);
+            
+            if (!voucherCode) {
+                toast("Vui lòng nhập mã voucher.", true);
+                return;
+            }
+
+            // Kiểm tra voucher hợp lệ
+            const url = `/api/vouchers/check?code=${encodeURIComponent(voucherCode)}`;
+            console.log("DEBUG: Fetching URL:", url);
+            
+            fetch(url)
+                .then(response => {
+                    console.log("DEBUG: Response status:", response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("DEBUG: Response data:", data);
+                    
+                    // Kiểm tra xem API có trả về success không
+                    if (!data.success || !data.voucherId) {
+                        console.log("DEBUG: Voucher not valid - success:", data.success, "voucherId:", data.voucherId);
+                        toast("Mã voucher không hợp lệ hoặc không tồn tại.", true);
+                        currentVoucherCodeInput.value = "";
+                        return;
+                    }
+
+                    // Voucher hợp lệ - áp dụng giảm giá
+                    console.log("DEBUG: Voucher is valid, applying discount:", data.discountValue);
+                    
+                    currentVoucher = data;
+                    currentDiscount = parseFloat(data.discountValue) || 0;
+                    
+                    console.log("DEBUG: Current discount set to:", currentDiscount);
+                    
+                    // Cập nhật giao diện
+                    document.getElementById("appliedVoucherCode").textContent = data.code;
+                    document.getElementById("discountAmount").textContent = formatMoney(currentDiscount);
+                    document.getElementById("currentVoucherInfo").style.display = "block";
+                    
+                    applyCurrentVoucherBtn.style.display = "none";
+                    removeCurrentVoucherBtn.style.display = "block";
+                    currentVoucherCodeInput.disabled = true;
+                    
+                    updateCartDisplay();
+                    toast("✓ Áp dụng voucher thành công! Giảm " + formatMoney(currentDiscount));
+                })
+                .catch(error => {
+                    console.error("DEBUG: Fetch error:", error);
+                    toast("Lỗi khi kiểm tra voucher. Vui lòng thử lại.", true);
+                    currentVoucherCodeInput.value = "";
+                });
+        });
+    }
+
+    if (removeCurrentVoucherBtn) {
+        removeCurrentVoucherBtn.addEventListener("click", () => {
+            currentVoucher = null;
+            currentDiscount = 0;
+            
+            document.getElementById("currentVoucherInfo").style.display = "none";
+            applyCurrentVoucherBtn.style.display = "block";
+            removeCurrentVoucherBtn.style.display = "none";
+            currentVoucherCodeInput.disabled = false;
+            currentVoucherCodeInput.value = "";
+            
+            updateCartDisplay();
+            toast("Đã hủy voucher.");
+        });
+    }
 
     buildCategoryPills();
     applyFilter();

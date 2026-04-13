@@ -9,6 +9,8 @@ public interface VoucherService {
 
     Optional<Voucher> findById(Integer id);
 
+    Optional<Voucher> findByCode(String code);
+
     List<Voucher> findAll();
 
     Voucher save(Voucher entity);

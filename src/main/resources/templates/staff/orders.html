@@ -107,8 +107,46 @@
                             <p class="empty-row">Chưa có sản phẩm trong đơn hàng.</p>
                         </div>
 
+                        <div class="voucher-section" style="margin: 15px 0; padding: 10px; background: #f9f9f9; border-radius: 5px;">
+                            <label for="currentVoucherCode" style="display: block; margin-bottom: 8px;">
+                                <strong>Áp dụng voucher</strong>
+                            </label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" 
+                                       id="currentVoucherCode" 
+                                       placeholder="Nhập mã voucher" 
+                                       style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 3px;">
+                                <button type="button" 
+                                        id="applyCurrentVoucherBtn" 
+                                        class="btn btn-primary" 
+                                        style="white-space: nowrap;">
+                                    Áp dụng
+                                </button>
+                                <button type="button" 
+                                        id="removeCurrentVoucherBtn" 
+                                        class="btn btn-secondary" 
+                                        style="white-space: nowrap; display: none;">
+                                    Bỏ voucher
+                                </button>
+                            </div>
+                            <div id="currentVoucherInfo" style="margin-top: 8px; font-size: 12px; color: #666; display: none;">
+                                <p><strong>Voucher đã áp dụng:</strong> <span id="appliedVoucherCode"></span></p>
+                                <p><strong>Giảm giá:</strong> <span id="discountAmount">0 VND</span></p>
+                            </div>
+                        </div>
+
                         <div class="cart-total-box">
-                            <span>Tổng tiền</span>
+                            <span>Tổng tiền gốc</span>
+                            <strong id="cartSubtotal">0 VND</strong>
+                        </div>
+
+                        <div id="discountDisplay" style="display: none; padding: 10px; background: #e7f3ff; border-radius: 3px; margin-bottom: 10px;">
+                            <span>Giảm giá voucher</span>
+                            <strong id="displayDiscountAmount" style="color: #dc3545;">-0 VND</strong>
+                        </div>
+
+                        <div class="cart-total-box">
+                            <span>Tổng tiền (sau giảm)</span>
                             <strong id="cartTotal">0 VND</strong>
                         </div>
 
@@ -165,6 +203,12 @@
                                         th:attr="data-order-id=${order.orderId},data-order-number=${order.orderNumber},data-customer=${order.customerName},data-total=${order.finalTotal}">
                                     In hóa đơn
                                 </button>
+                                <button class="btn btn-info btn-sm js-apply-voucher"
+                                        type="button"
+                                        th:attr="data-order-id=${order.orderId}"
+                                        th:disabled="${order.status == 'PAID'}">
+                                    Áp dụng voucher
+                                </button>
                                 <form th:if="${order.canCheckout}"
                                       th:action="@{/staff/orders/{id}/checkout(id=${order.orderId})}"
                                       method="post"
@@ -203,6 +247,27 @@
         <p class="invoice-meta"><strong>Khách hàng:</strong> <span id="invoiceCustomer">Khách lẻ</span></p>
         <div class="invoice-lines" id="invoiceLines"></div>
         <p class="invoice-total"><strong>Tổng tiền:</strong> <span id="invoiceTotal">0 VND</span></p>
+    </div>
+</div>
+
+<div class="modal" id="voucherModal" aria-hidden="true">
+    <div class="modal-card">
+        <div class="modal-card__top">
+            <h3>Áp dụng voucher</h3>
+            <button class="btn btn-secondary btn-sm" type="button" id="closeVoucherModal">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <form id="voucherForm" method="post">
+            <div class="form-group">
+                <label for="voucherCode">Mã voucher</label>
+                <input id="voucherCode" name="voucherCode" type="text" placeholder="Nhập mã voucher" required>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-secondary" type="button" id="cancelVoucherBtn">Hủy</button>
+                <button class="btn btn-primary" type="submit">Áp dụng</button>
+            </div>
+        </form>
     </div>
 </div>
 
