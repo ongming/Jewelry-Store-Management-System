@@ -4,6 +4,7 @@ import com.example.Jewelry.model.entity.Account;
 import com.example.Jewelry.model.entity.Admin;
 import com.example.Jewelry.model.entity.Staff;
 import com.example.Jewelry.model.enums.AccountStatusEnum;
+import com.example.Jewelry.factory.AccountFactory;
 import com.example.Jewelry.repository.StaffRepository;
 import com.example.Jewelry.service.AccountService;
 import com.example.Jewelry.service.AdminService;
@@ -185,11 +186,14 @@ public class AuthController {
         }
 
         int nextStaffId = staffRepository.findMaxStaffId() + 1;
-        Staff staff = new Staff();
+        
+        // Sử dụng AccountFactory thay vì new Staff()
+        Staff staff = (Staff) AccountFactory.createAccount("STAFF");
+        
         staff.setFullName(fullName.trim());
         staff.setUsername(username.trim());
         staff.setPasswordHash(password.trim());
-        staff.setRoleName("STAFF");
+        // Vai trò đã được khởi tạo tự động trong Factory
         staff.setStatus(normalizeStatus(status));
         staff.setStaffId(nextStaffId);
         staff.setManagerAdmin(currentAdmin);
