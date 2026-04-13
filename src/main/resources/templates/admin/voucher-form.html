@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${isEdit} ? 'Sửa voucher' : 'Thêm voucher'">Voucher</title>
+    <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/form.css}">
+    <style>
+        body {
+            background: #0b0f16;
+            color: #e5e7eb;
+        }
+
+        .admin-main,
+        .form-panel {
+            background: #0b0f16;
+        }
+
+        .voucher-shell {
+            max-width: 1040px;
+            margin: 0 auto;
+        }
+
+        .voucher-card {
+            background: #111827;
+            border: 1px solid #283548;
+            border-radius: 18px;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+            padding: 24px;
+        }
+
+        .voucher-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .voucher-head h2 {
+            margin: 0;
+            font-size: 28px;
+            color: #f8fafc;
+            line-height: 1.2;
+        }
+
+        .voucher-head p {
+            margin: 8px 0 0;
+            color: #94a3b8;
+            font-size: 14px;
+        }
+
+        .head-badge {
+            min-width: 220px;
+            border: 1px solid #304662;
+            border-radius: 12px;
+            padding: 10px 12px;
+            background: linear-gradient(145deg, #132034, #1b2b45);
+        }
+
+        .head-badge span {
+            display: block;
+            font-size: 12px;
+            color: #a8b4c8;
+            margin-bottom: 4px;
+        }
+
+        .head-badge strong {
+            font-size: 14px;
+            color: #93c5fd;
+        }
+
+        .alert.error {
+            margin: 0 0 14px;
+            border: 1px solid #8b3a57;
+            background: #3f1d2e;
+            color: #ffd7e6;
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+
+        .voucher-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .voucher-grid .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            display: inline-block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+
+        .required {
+            color: #fb7185;
+        }
+
+        .form-group input {
+            width: 100%;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 11px 12px;
+            font-size: 14px;
+            color: #e2e8f0;
+            background: #0f172a;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.24);
+        }
+
+        .field-hint {
+            margin-top: 6px;
+            color: #94a3b8;
+            font-size: 12px;
+        }
+
+        .preview-box {
+            border: 1px dashed #3a4f6e;
+            border-radius: 12px;
+            background: #0f172a;
+            padding: 12px;
+        }
+
+        .preview-box p {
+            margin: 0 0 6px;
+            color: #bfdbfe;
+            font-size: 13px;
+        }
+
+        .preview-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        .preview-box strong {
+            color: #f8fafc;
+        }
+
+        .form-actions {
+            margin-top: 8px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .form-actions .btn {
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .form-actions .btn-secondary {
+            background: #243244;
+            color: #e2e8f0;
+        }
+
+        .form-actions .btn-primary {
+            color: #ffffff;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            box-shadow: 0 10px 18px rgba(37, 99, 235, 0.24);
+        }
+
+        @media (max-width: 920px) {
+            .voucher-head {
+                flex-direction: column;
+            }
+
+            .head-badge {
+                width: 100%;
+                min-width: 0;
+            }
+
+            .voucher-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{fragments/header :: managementSidebar(${activePage})}"></aside>
+
+    <main class="admin-main">
+        <header th:replace="~{fragments/header :: managementTopbar(${isEdit} ? 'Sửa voucher' : 'Thêm voucher')}"></header>
+
+        <section class="form-panel">
+            <div class="voucher-shell">
+                <div class="voucher-card">
+                    <div class="voucher-head">
+                        <div>
+                            <h2 th:text="${isEdit} ? 'Cập nhật voucher' : 'Thêm mới voucher'"></h2>
+                            <p th:text="${isEdit} ? 'Chỉnh sửa thông tin mã giảm giá để quản lý chương trình khuyến mãi chính xác hơn.' : 'Tạo voucher mới với thời gian hiệu lực rõ ràng để staff áp dụng nhanh tại quầy.'"></p>
+                        </div>
+                        <div class="head-badge">
+                            <span>Gợi ý</span>
+                            <strong>Dùng mã ngắn, dễ nhớ (VD: SALE10, VIP20).</strong>
+                        </div>
+                    </div>
+
+                    <p class="alert error" th:if="${error}" th:text="${error}"></p>
+
+                    <form class="voucher-grid"
+                          th:action="${isEdit} ? (basePath + '/' + voucher.voucherId) : basePath"
+                          method="post">
+                        <div class="form-group">
+                            <label for="code">Mã voucher <span class="required">*</span></label>
+                            <input type="text" id="code" name="code" th:value="${voucher?.code}" placeholder="Ví dụ: SALE10" required>
+                            <p class="field-hint">Mã không nên trùng, ưu tiên chữ in hoa để dễ đọc.</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="discountValue">Giảm giá (VND) <span class="required">*</span></label>
+                            <input type="number" id="discountValue" name="discountValue" min="0" step="0.01" th:value="${voucher?.discountValue}" placeholder="Ví dụ: 100000" required>
+                            <p class="field-hint">Số tiền sẽ được trừ trực tiếp vào tổng đơn.</p>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="description">Mô tả voucher</label>
+                            <input type="text" id="description" name="description" th:value="${voucher?.description}" placeholder="Ví dụ: Voucher áp dụng cho đơn từ 2 triệu">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="startDate">Thời gian bắt đầu</label>
+                            <input type="datetime-local" id="startDate" name="startDate" th:value="${startDateValue}">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="endDate">Thời gian kết thúc</label>
+                            <input type="datetime-local" id="endDate" name="endDate" th:value="${endDateValue}">
+                        </div>
+
+                        <div class="preview-box full-width">
+                            <p><strong>Xem nhanh:</strong> <span id="previewCode">---</span></p>
+                            <p>Giảm: <strong id="previewDiscount">0 VND</strong></p>
+                            <p id="previewTime">Hiệu lực: Chưa thiết lập</p>
+                        </div>
+
+                        <div class="form-actions full-width">
+                            <a class="btn btn-secondary" th:href="${basePath}">Hủy</a>
+                            <button class="btn btn-primary" type="submit" th:text="${isEdit} ? 'Cập nhật' : 'Thêm voucher'"></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+<script>
+    (function () {
+        const codeInput = document.getElementById("code");
+        const discountInput = document.getElementById("discountValue");
+        const startInput = document.getElementById("startDate");
+        const endInput = document.getElementById("endDate");
+        const previewCode = document.getElementById("previewCode");
+        const previewDiscount = document.getElementById("previewDiscount");
+        const previewTime = document.getElementById("previewTime");
+
+        if (!codeInput || !discountInput || !previewCode) {
+            return;
+        }
+
+        function formatMoney(value) {
+            const numeric = Number(value || 0);
+            return new Intl.NumberFormat("vi-VN").format(numeric) + " VND";
+        }
+
+        function formatDate(value) {
+            if (!value) {
+                return "chưa đặt";
+            }
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) {
+                return "chưa đặt";
+            }
+            return date.toLocaleString("vi-VN");
+        }
+
+        function updatePreview() {
+            const code = (codeInput.value || "").trim().toUpperCase();
+            const discount = discountInput.value || 0;
+            previewCode.textContent = code || "---";
+            previewDiscount.textContent = formatMoney(discount);
+
+            const startText = formatDate(startInput ? startInput.value : "");
+            const endText = formatDate(endInput ? endInput.value : "");
+            previewTime.textContent = "Hiệu lực: " + startText + " -> " + endText;
+        }
+
+        codeInput.addEventListener("input", () => {
+            codeInput.value = codeInput.value.toUpperCase();
+            updatePreview();
+        });
+        discountInput.addEventListener("input", updatePreview);
+        if (startInput) startInput.addEventListener("change", updatePreview);
+        if (endInput) endInput.addEventListener("change", updatePreview);
+        updatePreview();
+    })();
+</script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 package com.example.Jewelry.controller;
 
 import com.example.Jewelry.service.SupplierService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
-@RequestMapping("/admin/suppliers")
+@RequestMapping({"/admin/suppliers", "/staff/suppliers"})
 public class SupplierController {
 
     private final SupplierService supplierService;
@@ -21,16 +22,20 @@ public class SupplierController {
     }
 
     @GetMapping
-    public String  listSuppliers(Model model) {
+    public String listSuppliers(Model model, HttpServletRequest request) {
+        String basePath = resolveBasePath(request);
         model.addAttribute("suppliers", supplierService.findAll());
-        model.addAttribute("activePage", "suppliers");
+        model.addAttribute("activePage", isStaffPath(basePath) ? "staff-suppliers" : "suppliers");
+        model.addAttribute("basePath", basePath);
         return "admin/suppliers";
     }
 
     @GetMapping("/new")
-    public String createSupplierForm(Model model) {
+    public String createSupplierForm(Model model, HttpServletRequest request) {
+        String basePath = resolveBasePath(request);
         model.addAttribute("isEdit", false);
-        model.addAttribute("activePage", "suppliers");
+        model.addAttribute("activePage", isStaffPath(basePath) ? "staff-suppliers" : "suppliers");
+        model.addAttribute("basePath", basePath);
         return "admin/supplier-form";
     }
 
@@ -38,29 +43,36 @@ public class SupplierController {
     public String createSupplier(@RequestParam String supplierName,
                                  @RequestParam(required = false) String phone,
                                  @RequestParam(required = false) String address,
-                                 RedirectAttributes redirectAttributes) {
+                                 RedirectAttributes redirectAttributes,
+                                 HttpServletRequest request) {
+        String basePath = resolveBasePath(request);
         try {
             supplierService.createSupplier(supplierName, phone, address);
             redirectAttributes.addFlashAttribute("success", "Thêm nhà cung cấp thành công.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "Lỗi thêm nhà cung cấp: " + e.getMessage());
-            return "redirect:/admin/suppliers/new";
+            return "redirect:" + basePath + "/new";
         }
-        return "redirect:/admin/suppliers";
+        return "redirect:" + basePath;
     }
 
     @GetMapping("/{id}/edit")
-    public String editSupplierForm(@PathVariable Integer id, Model model, RedirectAttributes redirectAttributes) {
+    public String editSupplierForm(@PathVariable Integer id,
+                                   Model model,
+                                   RedirectAttributes redirectAttributes,
+                                   HttpServletRequest request) {
+        String basePath = resolveBasePath(request);
         return supplierService.findById(id)
             .map(supplier -> {
                 model.addAttribute("supplier", supplier);
                 model.addAttribute("isEdit", true);
-                model.addAttribute("activePage", "suppliers");
+                model.addAttribute("activePage", isStaffPath(basePath) ? "staff-suppliers" : "suppliers");
+                model.addAttribute("basePath", basePath);
                 return "admin/supplier-form";
             })
             .orElseGet(() -> {
                 redirectAttributes.addFlashAttribute("error", "Không tìm thấy nhà cung cấp.");
-                return "redirect:/admin/suppliers";
+                return "redirect:" + basePath;
             });
     }
 
@@ -69,25 +81,42 @@ public class SupplierController {
                                  @RequestParam String supplierName,
                                  @RequestParam(required = false) String phone,
                                  @RequestParam(required = false) String address,
-                                 RedirectAttributes redirectAttributes) {
+                                 RedirectAttributes redirectAttributes,
+                                 HttpServletRequest request) {
+        String basePath = resolveBasePath(request);
         try {
             supplierService.updateSupplier(id, supplierName, phone, address);
             redirectAttributes.addFlashAttribute("success", "Cập nhật nhà cung cấp thành công.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "Lỗi cập nhật nhà cung cấp: " + e.getMessage());
-            return "redirect:/admin/suppliers/" + id + "/edit";
+            return "redirect:" + basePath + "/" + id + "/edit";
         }
-        return "redirect:/admin/suppliers";
+        return "redirect:" + basePath;
     }
 
     @PostMapping("/{id}/delete")
-    public String deleteSupplier(@PathVariable Integer id, RedirectAttributes redirectAttributes) {
+    public String deleteSupplier(@PathVariable Integer id,
+                                 RedirectAttributes redirectAttributes,
+                                 HttpServletRequest request) {
+        String basePath = resolveBasePath(request);
         try {
             supplierService.deleteSupplier(id);
             redirectAttributes.addFlashAttribute("success", "Xóa nhà cung cấp thành công.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "Lỗi xóa nhà cung cấp: " + e.getMessage());
         }
-        return "redirect:/admin/suppliers";
+        return "redirect:" + basePath;
+    }
+
+    private boolean isStaffPath(String basePath) {
+        return basePath.startsWith("/staff");
+    }
+
+    private String resolveBasePath(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        if (uri.startsWith("/staff/suppliers")) {
+            return "/staff/suppliers";
+        }
+        return "/admin/suppliers";
     }
 }

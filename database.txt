@@ -154,7 +154,10 @@ CREATE TABLE import_detail (
 CREATE TABLE voucher (
     voucher_id INT IDENTITY PRIMARY KEY,
     code NVARCHAR(50),
-    discount_value DECIMAL(15,2)
+    discount_value DECIMAL(15,2),
+    description NVARCHAR(255),
+    start_date DATETIME,
+    end_date DATETIME
 );
 
 -- ========================
@@ -268,10 +271,10 @@ INSERT INTO import_detail VALUES
 (10, 4000000, 1, 1);
 
 -- VOUCHER
-INSERT INTO voucher (code, discount_value) VALUES
-(N'SALE10', 100000),
-(N'SALE20', 200000),
-(N'DISCOUNT50', 50000);
+INSERT INTO voucher (code, discount_value, description, start_date, end_date) VALUES
+(N'SALE10', 100000, N'Giảm trực tiếp cho đơn hàng cơ bản', DATEADD(DAY, -7, GETDATE()), DATEADD(DAY, 30, GETDATE())),
+(N'SALE20', 200000, N'Ưu đãi giảm mạnh cho sản phẩm vàng', DATEADD(DAY, -3, GETDATE()), DATEADD(DAY, 20, GETDATE())),
+(N'DISCOUNT50', 50000, N'Voucher khuyến mãi nhanh cuối tuần', DATEADD(DAY, -1, GETDATE()), DATEADD(DAY, 10, GETDATE()));
 
 -- ORDERS
 INSERT INTO orders VALUES

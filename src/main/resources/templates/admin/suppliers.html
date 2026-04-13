@@ -9,7 +9,7 @@
 </head>
 <body>
 <div class="admin-layout">
-    <aside th:replace="~{fragments/header :: managementSidebar('suppliers')}"></aside>
+    <aside th:replace="~{fragments/header :: managementSidebar(${activePage})}"></aside>
 
     <main class="admin-main">
         <header th:replace="~{fragments/header :: managementTopbar('Quản lý nhà cung cấp')}"></header>
@@ -17,7 +17,7 @@
         <section class="catalog-panel">
             <div class="catalog-panel__top">
                 <h2>Danh sách nhà cung cấp</h2>
-                <a class="btn btn-primary" th:href="@{/admin/suppliers/new}">+ Thêm nhà cung cấp</a>
+                <a class="btn btn-primary" th:href="${basePath + '/new'}">+ Thêm nhà cung cấp</a>
             </div>
 
             <p class="alert success" th:if="${success}" th:text="${success}"></p>
@@ -40,8 +40,8 @@
                     <td th:text="${supplier.phone}">Phone</td>
                     <td th:text="${supplier.address}">Address</td>
                     <td class="actions-cell">
-                        <a class="btn btn-secondary" th:href="@{/admin/suppliers/{id}/edit(id=${supplier.supplierId})}">Sửa</a>
-                        <form th:action="@{/admin/suppliers/{id}/delete(id=${supplier.supplierId})}" method="post">
+                        <a class="btn btn-secondary" th:href="${basePath + '/' + supplier.supplierId + '/edit'}">Sửa</a>
+                        <form th:action="${basePath + '/' + supplier.supplierId + '/delete'}" method="post">
                             <button class="btn btn-danger" type="submit">Xóa</button>
                         </form>
                     </td>

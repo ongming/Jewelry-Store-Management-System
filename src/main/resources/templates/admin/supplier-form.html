@@ -199,7 +199,7 @@
 </head>
 <body>
 <div class="admin-layout">
-    <aside th:replace="~{fragments/header :: managementSidebar('suppliers')}"></aside>
+    <aside th:replace="~{fragments/header :: managementSidebar(${activePage})}"></aside>
 
     <main class="admin-main">
         <header th:replace="~{fragments/header :: managementTopbar(${isEdit} ? 'Sửa nhà cung cấp' : 'Thêm nhà cung cấp')}"></header>
@@ -220,7 +220,7 @@
 
                     <p class="alert error" th:if="${error}" th:text="${error}"></p>
 
-                    <form class="supplier-form" th:action="${isEdit} ? @{/admin/suppliers/{id}(id=${supplier.supplierId})} : @{/admin/suppliers}" method="post">
+                    <form class="supplier-form" th:action="${isEdit} ? (basePath + '/' + supplier.supplierId) : basePath" method="post">
                         <div class="form-group full">
                             <label for="supplierName">Tên nhà cung cấp <span class="required">*</span></label>
                             <input type="text" id="supplierName" name="supplierName" th:value="${supplier?.supplierName}" placeholder="Ví dụ: Công ty vàng bạc ABC" required>
@@ -242,7 +242,7 @@
                         </div>
 
                         <div class="form-actions">
-                            <a class="btn btn-secondary" th:href="@{/admin/suppliers}">Hủy</a>
+                            <a class="btn btn-secondary" th:href="${basePath}">Hủy</a>
                             <button class="btn btn-primary" type="submit" th:text="${isEdit} ? 'Cập nhật' : 'Thêm nhà cung cấp'"></button>
                         </div>
                     </form>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý voucher</title>
+    <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/catalog.css}">
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{fragments/header :: managementSidebar(${activePage})}"></aside>
+
+    <main class="admin-main">
+        <header th:replace="~{fragments/header :: managementTopbar('Quản lý voucher')}"></header>
+
+        <section class="catalog-panel">
+            <div class="catalog-panel__top">
+                <h2>Danh sách voucher</h2>
+                <a class="btn btn-primary" th:href="${basePath + '/new'}">+ Thêm voucher</a>
+            </div>
+
+            <p class="alert success" th:if="${success}" th:text="${success}"></p>
+            <p class="alert error" th:if="${error}" th:text="${error}"></p>
+
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Mã voucher</th>
+                    <th>Giảm giá</th>
+                    <th>Mô tả</th>
+                    <th>Bắt đầu</th>
+                    <th>Kết thúc</th>
+                    <th>Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(vouchers)}">
+                    <td colspan="7" class="empty-row">Chưa có voucher nào.</td>
+                </tr>
+                <tr th:each="voucher : ${vouchers}">
+                    <td th:text="${voucher.voucherId}">1</td>
+                    <td th:text="${voucher.code}">SALE10</td>
+                    <td th:text="${#numbers.formatDecimal(voucher.discountValue, 0, 'COMMA', 0, 'POINT')} + ' VND'">100,000 VND</td>
+                    <td th:text="${voucher.description ?: '-'}">Mô tả</td>
+                    <td th:text="${voucher.startDate ?: '-'}">2026-04-13T00:00</td>
+                    <td th:text="${voucher.endDate ?: '-'}">2026-04-30T23:59</td>
+                    <td class="actions-cell">
+                        <a class="btn btn-secondary" th:href="${basePath + '/' + voucher.voucherId + '/edit'}">Sửa</a>
+                        <form th:action="${basePath + '/' + voucher.voucherId + '/delete'}"
+                              method="post"
+                              onsubmit="return confirm('Bạn có chắc chắn muốn xóa voucher này?');">
+                            <button class="btn btn-danger" type="submit">Xóa</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</div>
+</body>
+</html>

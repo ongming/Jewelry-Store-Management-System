@@ -22,6 +22,7 @@
         <a th:classappend="${activePage == 'products'} ? 'active' : ''" th:href="@{/admin/products}"><i class="fa-solid fa-box"></i><span>Sản phẩm</span></a>
         <a th:classappend="${activePage == 'inventory'} ? 'active' : ''" th:href="@{/admin/inventory}"><i class="fa-solid fa-warehouse"></i><span>Quản lý kho</span></a>
         <a th:classappend="${activePage == 'suppliers'} ? 'active' : ''" th:href="@{/admin/suppliers}"><i class="fa-solid fa-truck"></i><span>Nhà cung cấp</span></a>
+        <a th:classappend="${activePage == 'vouchers'} ? 'active' : ''" th:href="@{/admin/vouchers}"><i class="fa-solid fa-ticket"></i><span>Voucher</span></a>
         <a th:classappend="${activePage == 'categories'} ? 'active' : ''" th:href="@{/admin/categories}"><i class="fa-solid fa-table-cells-large"></i><span>Danh mục</span></a>
         <a th:classappend="${activePage == 'staff-management'} ? 'active' : ''" th:href="@{/admin/staff-management}"><i class="fa-solid fa-users"></i><span>Nhân sự</span></a>
         <a th:href="@{/staff/dashboard}"><i class="fa-solid fa-display"></i><span>Xem giao diện nhân viên</span></a>
@@ -30,6 +31,8 @@
         <a th:classappend="${activePage == 'staff-dashboard'} ? 'active' : ''" th:href="@{/staff/dashboard}"><i class="fa-solid fa-gauge"></i><span>Bảng điều khiển</span></a>
         <a th:classappend="${activePage == 'staff-products'} ? 'active' : ''" th:href="@{/staff/products}"><i class="fa-solid fa-box"></i><span>Xem sản phẩm</span></a>
         <a th:classappend="${activePage == 'staff-inventory'} ? 'active' : ''" th:href="@{/staff/inventory}"><i class="fa-solid fa-warehouse"></i><span>Quản lý kho</span></a>
+        <a th:classappend="${activePage == 'staff-suppliers'} ? 'active' : ''" th:href="@{/staff/suppliers}"><i class="fa-solid fa-truck"></i><span>Nhà cung cấp</span></a>
+        <a th:classappend="${activePage == 'staff-vouchers'} ? 'active' : ''" th:href="@{/staff/vouchers}"><i class="fa-solid fa-ticket"></i><span>Voucher</span></a>
         <a th:classappend="${activePage == 'staff-orders'} ? 'active' : ''" th:href="@{/staff/orders}"><i class="fa-solid fa-file-invoice-dollar"></i><span>Bán hàng tại quầy</span></a>
         <a th:classappend="${activePage == 'staff-customers'} ? 'active' : ''" th:href="@{/staff/customers}"><i class="fa-solid fa-user-group"></i><span>Khách hàng</span></a>
     </nav>

@@ -440,6 +440,10 @@ public class OrderController {
                 redirectAttributes.addFlashAttribute("error", "Mã voucher không hợp lệ hoặc không tồn tại.");
                 return "redirect:/staff/orders";
             }
+            if (!isVoucherActive(voucher)) {
+                redirectAttributes.addFlashAttribute("error", "Voucher chưa đến thời gian áp dụng hoặc đã hết hạn.");
+                return "redirect:/staff/orders";
+            }
 
             order.setVoucher(voucher);
             BigDecimal currentTotal = order.getFinalTotal() == null ? BigDecimal.ZERO : order.getFinalTotal();
@@ -507,6 +511,20 @@ public class OrderController {
             return "0 VND";
         }
         return String.format("%,.0f VND", amount);
+    }
+
+    private boolean isVoucherActive(Voucher voucher) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startDate = voucher.getStartDate();
+        LocalDateTime endDate = voucher.getEndDate();
+
+        if (startDate != null && now.isBefore(startDate)) {
+            return false;
+        }
+        if (endDate != null && now.isAfter(endDate)) {
+            return false;
+        }
+        return true;
     }
 
     public record StaffProductView(Integer productId,

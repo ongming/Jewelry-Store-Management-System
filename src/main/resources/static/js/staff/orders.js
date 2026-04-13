@@ -35,6 +35,8 @@
         voucherCode: document.getElementById("voucherCode"),
         closeVoucherModal: document.getElementById("closeVoucherModal"),
         cancelVoucherBtn: document.getElementById("cancelVoucherBtn"),
+        availableVoucherList: document.getElementById("availableVoucherList"),
+        modalVoucherList: document.getElementById("modalVoucherList"),
         toastStack: document.getElementById("toastStack")
     };
 
@@ -82,6 +84,7 @@
 
     let currentVoucher = null;
     let currentDiscount = 0;
+    let availableVouchers = [];
 
     function updateCartDisplay() {
         const subtotal = currentCartTotal();
@@ -224,6 +227,109 @@
         }
         refs.invoiceTotal.textContent = formatMoney(totalValue);
         openModal(refs.invoiceModal);
+    }
+
+    function createVoucherChip(voucher, options = {}) {
+        const button = document.createElement("button");
+        const infoParts = [];
+        if (voucher.description) {
+            infoParts.push(voucher.description);
+        }
+        if (voucher.startDate || voucher.endDate) {
+            const start = voucher.startDate ? new Date(voucher.startDate).toLocaleString("vi-VN") : "không giới hạn";
+            const end = voucher.endDate ? new Date(voucher.endDate).toLocaleString("vi-VN") : "không giới hạn";
+            infoParts.push(`Hiệu lực: ${start} - ${end}`);
+        }
+
+        button.type = "button";
+        button.textContent = `${voucher.code} (-${formatMoney(voucher.discountValue)})`;
+        button.title = infoParts.join(" | ");
+        button.style.border = "1px solid #cdd5df";
+        button.style.borderRadius = "14px";
+        button.style.background = "#fff";
+        button.style.padding = "4px 10px";
+        button.style.fontSize = "12px";
+        button.style.cursor = "pointer";
+        button.style.color = "#334155";
+
+        if (options.isSelected) {
+            button.style.borderColor = "#2563eb";
+            button.style.background = "#e7f0ff";
+            button.style.color = "#1d4ed8";
+        }
+
+        button.addEventListener("click", () => {
+            if (typeof options.onClick === "function") {
+                options.onClick(voucher);
+            }
+        });
+        return button;
+    }
+
+    function renderAvailableVoucherLists() {
+        const renderTo = (container, mode) => {
+            if (!container) {
+                return;
+            }
+
+            if (!availableVouchers.length) {
+                container.innerHTML = '<span style="font-size: 12px; color: #999;">Không có voucher khả dụng.</span>';
+                return;
+            }
+
+            container.innerHTML = "";
+            availableVouchers.forEach(voucher => {
+                const chip = createVoucherChip(voucher, {
+                    isSelected: currentVoucher && currentVoucher.code === voucher.code,
+                    onClick: selected => {
+                        if (mode === "current") {
+                            const input = document.getElementById("currentVoucherCode");
+                            const applyBtn = document.getElementById("applyCurrentVoucherBtn");
+                            if (input) {
+                                input.value = selected.code;
+                            }
+                            if (applyBtn && !input.disabled) {
+                                applyBtn.click();
+                            }
+                        } else if (refs.voucherCode) {
+                            refs.voucherCode.value = selected.code;
+                            refs.voucherCode.focus();
+                        }
+                    }
+                });
+                container.appendChild(chip);
+            });
+        };
+
+        renderTo(refs.availableVoucherList, "current");
+        renderTo(refs.modalVoucherList, "modal");
+    }
+
+    function loadAvailableVouchers() {
+        fetch("/api/vouchers/available")
+            .then(response => response.json())
+            .then(data => {
+                if (!data || !data.success || !Array.isArray(data.vouchers)) {
+                    availableVouchers = [];
+                } else {
+                    availableVouchers = data.vouchers
+                        .filter(item => item && item.code)
+                        .map(item => ({
+                            code: item.code,
+                            voucherId: item.voucherId,
+                            discountValue: Number(item.discountValue || 0),
+                            description: item.description || "",
+                            startDate: item.startDate || null,
+                            endDate: item.endDate || null
+                        }))
+                        .sort((a, b) => b.discountValue - a.discountValue);
+                }
+                renderAvailableVoucherLists();
+            })
+            .catch(() => {
+                availableVouchers = [];
+                renderAvailableVoucherLists();
+            });
     }
 
     refs.tabButtons.forEach(button => {
@@ -526,6 +632,7 @@
                     currentVoucherCodeInput.disabled = true;
                     
                     updateCartDisplay();
+                    renderAvailableVoucherLists();
                     toast("✓ Áp dụng voucher thành công! Giảm " + formatMoney(currentDiscount));
                 })
                 .catch(error => {
@@ -548,10 +655,12 @@
             currentVoucherCodeInput.value = "";
             
             updateCartDisplay();
+            renderAvailableVoucherLists();
             toast("Đã hủy voucher.");
         });
     }
 
+    loadAvailableVouchers();
     buildCategoryPills();
     applyFilter();
     renderCart();
