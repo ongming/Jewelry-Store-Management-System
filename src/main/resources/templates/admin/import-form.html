@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nhập kho</title>
+    <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/form.css}">
+    <style>
+        .import-form-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .supplier-info {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .supplier-info h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        
+        .supplier-info p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .import-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .import-table thead {
+            background: #007bff;
+            color: white;
+        }
+        
+        .import-table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .import-table td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .import-table input,
+        .import-table select {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        
+        .import-table input:focus,
+        .import-table select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 3px rgba(0, 123, 255, 0.3);
+        }
+        
+        .btn-remove {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .btn-remove:hover {
+            background: #c82333;
+        }
+        
+        .btn-add {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 15px;
+            transition: background 0.3s;
+        }
+        
+        .btn-add:hover {
+            background: #218838;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+            justify-content: flex-end;
+        }
+        
+        .form-actions .btn {
+            padding: 10px 30px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .form-actions .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .form-actions .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .form-actions .btn-secondary {
+            background: #6c757d;
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .form-actions .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 3px;
+            margin-bottom: 20px;
+            border-left: 4px solid #f5c6cb;
+        }
+        
+        .total-info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .total-info p {
+            margin: 5px 0;
+            color: #004085;
+            font-size: 14px;
+        }
+        
+        .total-info .total-amount {
+            font-size: 18px;
+            font-weight: bold;
+            color: #007bff;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{fragments/header :: managementSidebar('inventory')}"></aside>
+
+    <main class="admin-main">
+        <header th:replace="~{fragments/header :: managementTopbar('Nhập kho')}"></header>
+
+        <section class="form-panel">
+            <div class="import-form-container">
+                <h2>Lập phiếu nhập kho</h2>
+
+                <div class="error-message" th:if="${error}" th:text="${error}"></div>
+
+                <form th:action="@{/admin/inventory/import-batch}" method="post" onsubmit="return validateForm()">
+                    <div class="form-group">
+                        <label for="supplierId"><strong>Nhà cung cấp <span style="color: red;">*</span></strong></label>
+                        <select name="supplierId" id="supplierId" required onchange="updateSupplierInfo()">
+                            <option value="" disabled selected>-- Chọn nhà cung cấp --</option>
+                            <option th:each="sup : ${suppliers}" th:value="${sup.supplierId}" th:text="${sup.supplierName}"></option>
+                        </select>
+                    </div>
+
+                    <div id="supplierInfo" class="supplier-info" style="display: none;">
+                        <h4>Thông tin nhà cung cấp được chọn</h4>
+                        <p><strong>Tên:</strong> <span id="supplierNameDisplay"></span></p>
+                        <p><strong>Điện thoại:</strong> <span id="supplierPhoneDisplay">-</span></p>
+                        <p><strong>Địa chỉ:</strong> <span id="supplierAddressDisplay">-</span></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label><strong>Danh sách sản phẩm nhập <span style="color: red;">*</span></strong></label>
+                        <table class="import-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40%;">Sản phẩm (Mã - Tên)</th>
+                                    <th style="width: 20%; text-align: center;">Số lượng</th>
+                                    <th style="width: 25%; text-align: center;">Giá nhập (VND)</th>
+                                    <th style="width: 15%; text-align: center;">Bỏ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="importRows">
+                                <tr>
+                                    <td>
+                                        <select name="productIds" class="product-select" required>
+                                            <option value="" disabled selected>Chọn sản phẩm</option>
+                                            <option th:each="prod : ${products}" th:value="${prod.productId}" th:text="${prod.productCode + ' - ' + prod.productName}"></option>
+                                        </select>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <input type="number" name="quantities" class="quantity-input" min="1" value="1" required>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <input type="number" name="importPrices" class="price-input" min="0" step="0.01" value="0" required>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <button type="button" class="btn-remove" onclick="removeRow(this)">Xóa</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <button type="button" class="btn-add" onclick="addRow()">+ Thêm dòng sản phẩm</button>
+                    </div>
+
+                    <div class="total-info">
+                        <p><strong>Tổng số dòng sản phẩm:</strong> <span id="totalRows">1</span></p>
+                        <p id="totalCostDisplay" style="display: none;"><strong>Tổng chi phí nhập:</strong> <span id="totalCostAmount" class="total-amount">0 VND</span></p>
+                    </div>
+
+                    <div class="form-actions">
+                        <a class="btn btn-secondary" th:href="@{/admin/inventory}">Hủy</a>
+                        <button class="btn btn-primary" type="submit">Hoàn tất nhập hàng</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    var productsList = [];
+    var suppliersList = [];
+
+    // Lấy danh sách sản phẩm và nhà cung cấp từ các option trong select
+    function initializeData() {
+        var productSelects = document.querySelectorAll('.product-select');
+        if (productSelects.length > 0) {
+            var options = productSelects[0].querySelectorAll('option');
+            for (var i = 0; i < options.length; i++) {
+                var option = options[i];
+                if (option.value) {
+                    productsList.push({
+                        productId: parseInt(option.value),
+                        productCode: option.textContent.split(' - ')[0],
+                        productName: option.textContent.split(' - ')[1]
+                    });
+                }
+            }
+        }
+        
+        var supplierSelect = document.getElementById('supplierId');
+        if (supplierSelect) {
+            var options = supplierSelect.querySelectorAll('option');
+            for (var i = 0; i < options.length; i++) {
+                var option = options[i];
+                if (option.value) {
+                    suppliersList.push({
+                        supplierId: parseInt(option.value),
+                        supplierName: option.textContent
+                    });
+                }
+            }
+        }
+    }
+
+    function addRow() {
+        var tbody = document.getElementById('importRows');
+        var tr = document.createElement('tr');
+        
+        var selectHtml = '<select name="productIds" class="product-select" required><option value="" disabled selected>Chọn sản phẩm</option>';
+        for (var i = 0; i < productsList.length; i++) {
+            var p = productsList[i];
+            selectHtml += '<option value="' + p.productId + '">' + p.productCode + ' - ' + p.productName + '</option>';
+        }
+        selectHtml += '</select>';
+
+        tr.innerHTML = '<td>' + selectHtml + '</td>' +
+                       '<td style="text-align: center;"><input type="number" name="quantities" class="quantity-input" min="1" value="1" required></td>' +
+                       '<td style="text-align: center;"><input type="number" name="importPrices" class="price-input" min="0" step="0.01" value="0" required></td>' +
+                       '<td style="text-align: center;"><button type="button" class="btn-remove" onclick="removeRow(this)">Xóa</button></td>';
+        tbody.appendChild(tr);
+        
+        updateTotalRows();
+        updateTotalCost();
+    }
+
+    function removeRow(btn) {
+        var tr = btn.parentNode.parentNode;
+        var tbody = tr.parentNode;
+        if (tbody.children.length > 1) {
+            tbody.removeChild(tr);
+            updateTotalRows();
+            updateTotalCost();
+        } else {
+            alert("Phải có ít nhất một sản phẩm để nhập kho.");
+        }
+    }
+
+    function updateTotalRows() {
+        var tbody = document.getElementById('importRows');
+        document.getElementById('totalRows').textContent = tbody.children.length;
+    }
+
+    function updateTotalCost() {
+        var tbody = document.getElementById('importRows');
+        var total = 0;
+        for (var i = 0; i < tbody.children.length; i++) {
+            var row = tbody.children[i];
+            var qty = parseFloat(row.cells[1].querySelector('input').value) || 0;
+            var price = parseFloat(row.cells[2].querySelector('input').value) || 0;
+            total += qty * price;
+        }
+        
+        if (total > 0) {
+            document.getElementById('totalCostDisplay').style.display = 'block';
+            document.getElementById('totalCostAmount').textContent = total.toLocaleString('vi-VN') + ' VND';
+        } else {
+            document.getElementById('totalCostDisplay').style.display = 'none';
+        }
+    }
+
+    function updateSupplierInfo() {
+        var supplierId = document.getElementById('supplierId').value;
+        var supplierInfo = document.getElementById('supplierInfo');
+        
+        if (supplierId) {
+            var supplier = null;
+            for (var i = 0; i < suppliersList.length; i++) {
+                if (suppliersList[i].supplierId == supplierId) {
+                    supplier = suppliersList[i];
+                    break;
+                }
+            }
+            
+            if (supplier) {
+                document.getElementById('supplierNameDisplay').textContent = supplier.supplierName || '-';
+                document.getElementById('supplierPhoneDisplay').textContent = supplier.phone || '-';
+                document.getElementById('supplierAddressDisplay').textContent = supplier.address || '-';
+                supplierInfo.style.display = 'block';
+            }
+        } else {
+            supplierInfo.style.display = 'none';
+        }
+    }
+
+    function validateForm() {
+        var supplierId = document.getElementById('supplierId').value;
+        if (!supplierId) {
+            alert("Vui lòng chọn nhà cung cấp.");
+            return false;
+        }
+        
+        var tbody = document.getElementById('importRows');
+        var hasDuplicate = false;
+        var selectedProducts = new Set();
+        
+        for (var i = 0; i < tbody.children.length; i++) {
+            var row = tbody.children[i];
+            var productId = row.cells[0].querySelector('select').value;
+            
+            if (!productId) {
+                alert("Vui lòng chọn sản phẩm ở tất cả các dòng.");
+                return false;
+            }
+            
+            if (selectedProducts.has(productId)) {
+                hasDuplicate = true;
+            }
+            selectedProducts.add(productId);
+            
+            var qty = parseFloat(row.cells[1].querySelector('input').value);
+            var price = parseFloat(row.cells[2].querySelector('input').value);
+            
+            if (qty < 1) {
+                alert("Số lượng phải lớn hơn hoặc bằng 1.");
+                return false;
+            }
+            
+            if (price < 0) {
+                alert("Giá nhập không được âm.");
+                return false;
+            }
+        }
+        
+        if (hasDuplicate && !confirm("Một số sản phẩm bị lặp lại. Bạn có chắc chắn muốn tiếp tục?")) {
+            return false;
+        }
+        
+        return true;
+    }
+
+    // Cập nhật tổng chi phí khi nhập số lượng hoặc giá
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeData();
+        updateTotalRows();
+        
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('quantity-input') || e.target.classList.contains('price-input')) {
+                updateTotalCost();
+            }
+        });
+        
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('quantity-input') || e.target.classList.contains('price-input')) {
+                updateTotalCost();
+            }
+        });
+    });
+</script>
+</body>
+</html>

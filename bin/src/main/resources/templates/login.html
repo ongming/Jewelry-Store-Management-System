@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập hệ thống quản lý trang sức</title>
+    <link rel="stylesheet" th:href="@{/css/management/login.css}">
+</head>
+<body>
+<main class="login-page" role="main">
+    <div class="backdrop"></div>
+
+    <section class="login-card" aria-labelledby="login-title">
+        <p class="eyebrow">Khu vực quản lý</p>
+        <h1 id="login-title">Hệ thống quản lý trang sức</h1>
+        <p class="subtitle">Đăng nhập dành cho quản trị viên và nhân viên.</p>
+
+        <p th:if="${error}" th:text="${error}" class="error"></p>
+
+        <form th:action="@{/auth/login}" method="post" class="login-form" id="loginForm">
+            <div class="input-group">
+                <input id="username" name="username" type="text" autocomplete="username" th:value="${username}" required>
+                <label for="username">Tên đăng nhập</label>
+            </div>
+
+            <div class="input-group">
+                <input id="password" name="password" type="password" autocomplete="current-password" required>
+                <label for="password">Mật khẩu</label>
+            </div>
+
+            <div class="form-row">
+                <label class="remember-me" for="remember-me">
+                    <input id="remember-me" name="remember-me" type="checkbox">
+                    <span>Ghi nhớ đăng nhập</span>
+                </label>
+                <a href="#" class="forgot-link" aria-label="Quên mật khẩu">Quên mật khẩu?</a>
+            </div>
+
+            <button type="submit" class="login-btn" id="loginBtn">
+                <span class="btn-text">Đăng nhập</span>
+                <span class="spinner" aria-hidden="true"></span>
+            </button>
+
+            <div class="back-store-row">
+                <a class="forgot-link" th:href="@{/home}">Về lại trang bán hàng</a>
+            </div>
+        </form>
+    </section>
+</main>
+
+<script>
+    const loginForm = document.getElementById('loginForm');
+    const loginBtn = document.getElementById('loginBtn');
+
+    loginForm.addEventListener('submit', function () {
+        loginBtn.classList.add('is-loading');
+        loginBtn.setAttribute('aria-busy', 'true');
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+@startuml
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+package "com.example.Jewelry.model.entity" {
+
+class Account <<Entity>> {
+  +accountId : int
+  +username : String
+  +passwordHash : String
+  +fullName : String
+  +roleName : String
+}
+
+class Staff <<Entity>> {
+  +staffId : int
+}
+
+class Admin <<Entity>>
+
+class Customer <<Entity>> {
+  +customerId : int
+  +customerName : String
+  +phone : String
+  +address : String
+}
+
+class Supplier <<Entity>> {
+  +supplierId : int
+  +supplierName : String
+  +contactPerson : String
+  +phone : String
+  +address : String
+}
+
+class Category <<Entity>> {
+  +categoryId : int
+  +categoryName : String
+}
+
+class Product <<Entity>> {
+  +productId : int
+  +productCode : String
+  +productName : String
+  +basePrice : BigDecimal
+}
+
+class ProductAttribute <<Entity>> {
+  +attributeId : int
+  +attributeName : String
+  +attributeValue : String
+}
+
+class Inventory <<Entity>> {
+  +inventoryId : int
+  +quantityStock : int
+}
+
+class ImportReceipt <<Entity>> {
+  +receiptId : int
+  +importDate : LocalDateTime
+  +totalCost : BigDecimal
+}
+
+class ImportDetail <<Entity>> {
+  +detailId : int
+  +quantity : int
+  +importPrice : BigDecimal
+}
+
+class Order <<Entity>> {
+  +orderId : int
+  +orderNumber : String
+  +orderDate : LocalDateTime
+  +status : String
+  +finalTotal : BigDecimal
+}
+
+class OrderDetail <<Entity>> {
+  +orderDetailId : int
+  +quantity : int
+  +unitPrice : BigDecimal
+}
+
+class Payment <<Entity>> {
+  +paymentId : int
+  +method : String
+}
+
+class Voucher <<Entity>> {
+  +voucherId : int
+  +code : String
+  +discountValue : BigDecimal
+}
+
+Account <|-- Staff
+Staff <|-- Admin
+
+Admin "1" -- "0..*" Staff : manages
+Staff "1" -- "0..*" Order : creates
+Staff "1" -- "0..*" ImportReceipt : manages
+
+Customer "1" -- "0..*" Order : receives
+Order "1" -- "1" Payment : paid_by
+Order "0..*" -- "0..1" Voucher : applies
+
+Category "1" -- "*" Product : contains
+Product "1" -- "1" Inventory : tracked_by
+Product "1" *-- "1..*" ProductAttribute : has_attributes
+
+Order "1" *-- "1..*" OrderDetail : contains
+OrderDetail "0..*" --> "1" Product : product
+
+Supplier "1" -- "0..*" ImportReceipt : supplies
+ImportReceipt "1" *-- "1..*" ImportDetail : has_details
+ImportDetail "0..*" --> "1" Product : product
+
+}
+@enduml

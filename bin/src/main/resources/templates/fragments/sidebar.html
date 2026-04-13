@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+<aside th:fragment="adminSidebar(activePage)" class="admin-sidebar" th:replace="~{fragments/header :: managementSidebar(${activePage})}"></aside>
+</body>
+</html>
+

@@ -1,0 +1,154 @@
+Fix my product detail page UI and data binding issues in my Spring Boot + Thymeleaf project.
+
+Current problems:
+1. Layout looks broken, spacing inconsistent, and components are not aligned properly.
+2. Product images are not displayed correctly (only 1 image shown while DB has multiple).
+3. Product detail description is not rendered correctly from database.
+4. Overall UI looks messy and not structured.
+
+========================
+1. FIX PRODUCT IMAGE LOGIC (VERY IMPORTANT)
+========================
+
+- Each product can have MAX 3 images.
+- Fetch images from product_image table using product_id.
+- Display:
+
+LEFT SIDE:
+- 1 main image (is_primary = 1 if exists, otherwise first image)
+- Below: up to 3 thumbnail images
+
+- Clicking thumbnail:
+  → updates main image (use JS)
+
+- If no image:
+  → show placeholder
+
+Thymeleaf example:
+- Loop through images:
+  th:each="img : ${product.images}"
+
+- Limit to 3 images:
+  use .subList(0,3) or logic in backend
+
+========================
+2. FIX DATA BINDING
+========================
+
+- Product detail MUST come from:
+  product.detail (database)
+
+Replace hardcoded text:
+❌ "Sản phẩm trang sức cao cấp"
+
+With:
+✅ th:text="${product.detail}"
+
+- Product attributes:
+  Loop:
+  th:each="attr : ${product.attributes}"
+
+========================
+3. REBUILD LAYOUT (CLEAN STRUCTURE)
+========================
+
+Use 2-column layout:
+
+.container
+  .left (60%)
+     - main image
+     - thumbnails
+  .right (40%)
+     - category
+     - product name
+     - price
+     - attributes
+     - contact button
+
+Below:
+  - product description section (full width)
+
+========================
+4. FIX UI (IMPORTANT)
+========================
+
+- Remove messy spacing
+- Align everything using flexbox or grid
+
+Use:
+display: flex;
+gap: 32px;
+align-items: flex-start;
+
+- Add consistent padding: 24px–32px
+
+========================
+5. CONTACT BUTTON (REPLACE ADD TO CART)
+========================
+
+Replace:
+"Thêm vào giỏ hàng"
+
+With:
+Button:
+"LIÊN HỆ NHÂN VIÊN"
+
+Behavior:
+- click → open tel:0909000111
+OR
+- show popup with phone + zalo
+
+========================
+6. CLEAN PRODUCT DESCRIPTION SECTION
+========================
+
+Below product:
+
+Title:
+"Mô tả sản phẩm"
+
+Content:
+th:text="${product.detail}"
+
+Style:
+- max-width: 800px
+- line-height: 1.6
+- margin-top: 40px
+
+========================
+7. CSS FIX (IMPORTANT)
+========================
+
+- Fix image stretching:
+  object-fit: cover;
+  border-radius: 12px;
+
+- Thumbnail:
+  width: 80px;
+  height: 80px;
+  cursor: pointer;
+
+- Main image:
+  width: 100%;
+  height: 400px;
+
+========================
+8. DEBUG CHECKLIST
+========================
+
+Make sure:
+- Backend returns:
+  product
+  product.images
+  product.attributes
+
+- Relationship mapping:
+  @OneToMany(mappedBy="product")
+
+========================
+
+IMPORTANT:
+- Do NOT redesign randomly
+- Fix structure + data rendering first
+- Then apply clean modern layout
+- Keep black & gold theme

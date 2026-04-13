@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${isEdit} ? 'Sửa nhà cung cấp' : 'Thêm nhà cung cấp'">Thêm/Sửa</title>
+    <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/form.css}">
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{fragments/header :: managementSidebar('suppliers')}"></aside>
+
+    <main class="admin-main">
+        <header th:replace="~{fragments/header :: managementTopbar(${isEdit} ? 'Sửa nhà cung cấp' : 'Thêm nhà cung cấp')}"></header>
+
+        <section class="form-panel">
+            <div class="form-container">
+                <h2 th:text="${isEdit} ? 'Cập nhật nhà cung cấp' : 'Thêm mới nhà cung cấp'"></h2>
+
+                <p class="alert error" th:if="${error}" th:text="${error}"></p>
+
+                <form th:action="${isEdit} ? @{/admin/suppliers/{id}(id=${supplier.supplierId})} : @{/admin/suppliers}" method="post">
+                    <div class="form-group">
+                        <label for="supplierName">Tên nhà cung cấp <span class="required">*</span></label>
+                        <input type="text" id="supplierName" name="supplierName" th:value="${supplier?.supplierName}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Số điện thoại</label>
+                        <input type="text" id="phone" name="phone" th:value="${supplier?.phone}">
+                    </div>
+
+                     <div class="form-group">
+                        <label for="address">Địa chỉ</label>
+                        <input type="text" id="address" name="address" th:value="${supplier?.address}">
+                    </div>
+
+                    <div class="form-actions">
+                        <a class="btn btn-secondary" th:href="@{/admin/suppliers}">Hủy</a>
+                        <button class="btn btn-primary" type="submit" th:text="${isEdit} ? 'Cập nhật' : 'Thêm'"></button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

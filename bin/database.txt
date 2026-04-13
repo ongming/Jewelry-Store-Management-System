@@ -1,0 +1,301 @@
+USE master;
+GO
+
+IF EXISTS (SELECT name FROM sys.databases WHERE name = N'JewelryStoreDB')
+BEGIN
+    ALTER DATABASE JewelryStoreDB SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE JewelryStoreDB;
+END
+GO
+
+CREATE DATABASE JewelryStoreDB;
+GO
+
+USE JewelryStoreDB;
+GO
+
+-- ========================
+-- ACCOUNT
+-- ========================
+CREATE TABLE account (
+    account_id INT IDENTITY PRIMARY KEY,
+    username NVARCHAR(100) UNIQUE NOT NULL,
+    password_hash NVARCHAR(255) NOT NULL,
+    full_name NVARCHAR(150) NOT NULL,
+    role_name NVARCHAR(30) NOT NULL,
+    status NVARCHAR(20) DEFAULT 'ACTIVE' NOT NULL
+);
+
+-- ========================
+-- STAFF
+-- ========================
+CREATE TABLE staff (
+    account_id INT PRIMARY KEY,
+    staff_id INT UNIQUE NOT NULL,
+    manager_admin_account_id INT NULL,
+    FOREIGN KEY (account_id) REFERENCES account(account_id)
+);
+
+-- ========================
+-- ADMIN
+-- ========================
+CREATE TABLE admin (
+    account_id INT PRIMARY KEY,
+    FOREIGN KEY (account_id) REFERENCES staff(account_id)
+);
+
+ALTER TABLE staff
+ADD CONSTRAINT fk_staff_admin
+FOREIGN KEY (manager_admin_account_id) REFERENCES admin(account_id);
+
+-- ========================
+-- CUSTOMER
+-- ========================
+CREATE TABLE customer (
+    customer_id INT IDENTITY PRIMARY KEY,
+    customer_name NVARCHAR(150),
+    phone NVARCHAR(20),
+    address NVARCHAR(255)
+);
+
+-- ========================
+-- CATEGORY
+-- ========================
+CREATE TABLE category (
+    category_id INT IDENTITY PRIMARY KEY,
+    category_name NVARCHAR(100)
+);
+
+-- ========================
+-- PRODUCT
+-- ========================
+CREATE TABLE product (
+    product_id INT IDENTITY PRIMARY KEY,
+    product_code NVARCHAR(50) UNIQUE,
+    product_name NVARCHAR(150),
+    base_price DECIMAL(15,2),
+    detail NVARCHAR(MAX),
+    category_id INT,
+    FOREIGN KEY (category_id) REFERENCES category(category_id)
+);
+
+-- ========================
+-- PRODUCT ATTRIBUTE
+-- ========================
+CREATE TABLE product_attribute (
+    attribute_id INT IDENTITY PRIMARY KEY,
+    product_id INT NOT NULL,
+    attribute_name NVARCHAR(100),
+    attribute_value NVARCHAR(255),
+    FOREIGN KEY (product_id) REFERENCES product(product_id)
+);
+
+-- ========================
+-- PRODUCT IMAGE
+-- ========================
+CREATE TABLE product_image (
+    image_id INT IDENTITY PRIMARY KEY,
+    product_id INT NOT NULL,
+    image_url NVARCHAR(500),
+    is_primary BIT DEFAULT 0,
+    display_order INT DEFAULT 0,
+    FOREIGN KEY (product_id) REFERENCES product(product_id)
+);
+
+-- ========================
+-- INVENTORY
+-- ========================
+CREATE TABLE inventory (
+    inventory_id INT IDENTITY PRIMARY KEY,
+    quantity_stock INT,
+    product_id INT UNIQUE,
+    FOREIGN KEY (product_id) REFERENCES product(product_id)
+);
+
+-- ========================
+-- SUPPLIER
+-- ========================
+CREATE TABLE supplier (
+    supplier_id INT IDENTITY PRIMARY KEY,
+    supplier_name NVARCHAR(150),
+    phone NVARCHAR(20),
+    address NVARCHAR(255)
+);
+
+-- ========================
+-- IMPORT RECEIPT
+-- ========================
+CREATE TABLE import_receipt (
+    receipt_id INT IDENTITY PRIMARY KEY,
+    import_date DATETIME,
+    total_cost DECIMAL(15,2),
+    supplier_id INT,
+    staff_account_id INT,
+    FOREIGN KEY (supplier_id) REFERENCES supplier(supplier_id),
+    FOREIGN KEY (staff_account_id) REFERENCES staff(account_id)
+);
+
+-- ========================
+-- IMPORT DETAIL
+-- ========================
+CREATE TABLE import_detail (
+    detail_id INT IDENTITY PRIMARY KEY,
+    quantity INT,
+    import_price DECIMAL(15,2),
+    receipt_id INT,
+    product_id INT,
+    FOREIGN KEY (receipt_id) REFERENCES import_receipt(receipt_id),
+    FOREIGN KEY (product_id) REFERENCES product(product_id)
+);
+
+-- ========================
+-- VOUCHER
+-- ========================
+CREATE TABLE voucher (
+    voucher_id INT IDENTITY PRIMARY KEY,
+    code NVARCHAR(50),
+    discount_value DECIMAL(15,2)
+);
+
+-- ========================
+-- ORDERS
+-- ========================
+CREATE TABLE orders (
+    order_id INT IDENTITY PRIMARY KEY,
+    order_number NVARCHAR(50),
+    order_date DATETIME,
+    status NVARCHAR(30),
+    final_total DECIMAL(15,2),
+    customer_id INT,
+    staff_account_id INT,
+    voucher_id INT NULL,
+    FOREIGN KEY (customer_id) REFERENCES customer(customer_id),
+    FOREIGN KEY (staff_account_id) REFERENCES staff(account_id),
+    FOREIGN KEY (voucher_id) REFERENCES voucher(voucher_id)
+);
+
+-- ========================
+-- ORDER DETAIL
+-- ========================
+CREATE TABLE order_detail (
+    order_detail_id INT IDENTITY PRIMARY KEY,
+    quantity INT,
+    unit_price DECIMAL(15,2),
+    order_id INT,
+    product_id INT,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id),
+    FOREIGN KEY (product_id) REFERENCES product(product_id)
+);
+
+-- ========================
+-- PAYMENT
+-- ========================
+CREATE TABLE payment (
+    payment_id INT IDENTITY PRIMARY KEY,
+    method NVARCHAR(50),
+    order_id INT UNIQUE,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id)
+);
+
+-- ========================
+-- SEED DATA (CHUẨN KHÔNG LỖI)
+-- ========================
+
+-- ACCOUNT
+INSERT INTO account (username, password_hash, full_name, role_name, status) VALUES
+(N'admin', N'123', N'Admin', N'ADMIN', N'ACTIVE'),
+(N'staff1', N'123', N'Staff 1', N'STAFF', N'ACTIVE');
+
+-- STAFF
+INSERT INTO staff VALUES
+(1, 1000, NULL),
+(2, 1001, NULL);
+
+-- ADMIN
+INSERT INTO admin VALUES (1);
+
+-- UPDATE MANAGER
+UPDATE staff SET manager_admin_account_id = 1 WHERE account_id = 2;
+
+-- CUSTOMER
+INSERT INTO customer VALUES
+(N'Pham Thi A', '0909000111', N'Q1'),
+(N'Hoang Van B', '0911222333', N'Q7');
+
+-- CATEGORY
+INSERT INTO category VALUES
+(N'Ring'),
+(N'Necklace');
+
+-- PRODUCT
+INSERT INTO product VALUES
+(N'R001', N'Nhẫn Vàng 18K', 5500000, N'Nhẫn vàng cao cấp', 1),
+(N'R002', N'Nhẫn Kim Cương', 12500000, N'Nhẫn kim cương', 1),
+(N'N001', N'Dây chuyền', 8900000, N'Dây chuyền đẹp', 2);
+
+-- PRODUCT ATTRIBUTE
+INSERT INTO product_attribute VALUES
+(1, N'Chất liệu', N'Vàng 18K'),
+(1, N'Size', N'7'),
+(2, N'Đá', N'Kim cương'),
+(3, N'Chiều dài', N'45cm');
+
+-- PRODUCT IMAGE
+INSERT INTO product_image VALUES
+(1, N'https://cdn.pnj.io/images/detailed/181/sp-GN0000Y000391-nhan-cuoi-nam-vang-18k-pnj-1.png', 1, 1),
+(1, N'https://cdn.pnj.io/images/detailed/181/sp-GN0000Y000391-nhan-cuoi-nam-vang-18k-pnj-2.png', 0, 2),
+(2, N'https://cdn.pnj.io/images/detailed/290/sp-gvddddw001279-vong-tay-kim-cuong-vang-trang-585-14k-pnj-timeless-diamond-01.png', 1, 1),
+(2, N'https://cdn.pnj.io/images/detailed/290/sp-gvddddw001279-vong-tay-kim-cuong-vang-trang-585-14k-pnj-timeless-diamond-02.png', 0, 2),
+(3, N'https://cdn.pnj.io/images/detailed/284/sp-gd0000y013147-day-chuyen-nam-vang-99-mancode-by-pnj-uy-ma-kim-linh-100.png', 1, 1),
+(3, N'https://cdn.pnj.io/images/detailed/284/sp-gd0000y013147-day-chuyen-nam-vang-99-mancode-by-pnj-uy-ma-kim-linh-200.png', 0, 2);
+
+-- INVENTORY
+INSERT INTO inventory VALUES
+(20, 1),
+(10, 2),
+(15, 3);
+
+-- SUPPLIER
+INSERT INTO supplier VALUES
+(N'Gold Supplier', '0909999999', N'HCM');
+
+-- IMPORT RECEIPT
+INSERT INTO import_receipt VALUES
+(GETDATE(), 50000000, 1, 2);
+
+-- IMPORT DETAIL
+INSERT INTO import_detail VALUES
+(10, 4000000, 1, 1);
+
+-- VOUCHER
+INSERT INTO voucher VALUES
+(N'SALE10', 100000);
+
+-- ORDERS
+INSERT INTO orders VALUES
+(N'ORD001', GETDATE(), N'PAID', 15000000, 1, 2, 1);
+
+-- ORDER DETAIL
+INSERT INTO order_detail VALUES
+(1, 5500000, 1, 1);
+
+-- PAYMENT
+INSERT INTO payment VALUES
+(N'CASH', 1);
+
+UPDATE product
+SET detail = N'Nhẫn vàng 18K cao cấp được chế tác tinh xảo với độ hoàn thiện cao, mang lại vẻ đẹp sang trọng và đẳng cấp cho người đeo. Sản phẩm sử dụng vàng 18K với độ bền tốt, màu sắc sáng bóng lâu dài và không bị xỉn màu theo thời gian. Thiết kế tối giản nhưng tinh tế, phù hợp cho nhiều dịp như đi làm, dự tiệc hoặc làm quà tặng. Nhẫn có trọng lượng vừa phải, đeo thoải mái trong thời gian dài mà không gây khó chịu.'
+WHERE product_id = 1;
+
+UPDATE product
+SET detail = N'Nhẫn kim cương cao cấp được đính đá kim cương tự nhiên với độ sáng vượt trội, mang lại vẻ đẹp lấp lánh và sang trọng. Phần thân nhẫn được làm từ vàng chất lượng cao, đảm bảo độ bền và độ chắc chắn. Sản phẩm phù hợp làm trang sức cao cấp hoặc nhẫn cầu hôn, thể hiện sự đẳng cấp và tinh tế của người sở hữu. Thiết kế hiện đại, phù hợp với xu hướng thời trang hiện nay.'
+WHERE product_id = 2;
+
+UPDATE product
+SET detail = N'Dây chuyền vàng trắng được thiết kế thanh lịch và nhẹ nhàng, phù hợp với nhiều phong cách thời trang khác nhau. Sản phẩm có độ hoàn thiện cao, bề mặt sáng bóng và chống oxy hóa tốt. Với chiều dài tiêu chuẩn, dây chuyền dễ dàng kết hợp với nhiều loại trang phục từ công sở đến dạo phố. Đây là lựa chọn lý tưởng cho những ai yêu thích sự tinh tế và sang trọng.'
+WHERE product_id = 3;
+
+
+GO
+
+PRINT N'✔ FULL DATABASE OK (ATTRIBUTE + IMAGE + DETAIL)';

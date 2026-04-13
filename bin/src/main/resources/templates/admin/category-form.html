@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${isEdit} ? 'Cập nhật danh mục' : 'Thêm danh mục'">Danh mục</title>
+    <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/catalog.css}">
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{fragments/header :: managementSidebar('categories')}"></aside>
+
+    <main class="admin-main">
+        <header th:replace="~{fragments/header :: managementTopbar(${isEdit} ? 'Cập nhật danh mục' : 'Thêm danh mục')}"></header>
+
+        <section class="catalog-panel form-panel">
+            <h2 th:text="${isEdit} ? 'Cập nhật danh mục' : 'Thêm danh mục mới'">Danh mục</h2>
+
+            <p class="alert error" th:if="${error}" th:text="${error}"></p>
+
+            <form th:action="${isEdit} ? @{/admin/categories/{id}(id=${category.categoryId})} : @{/admin/categories}" method="post">
+                <label for="categoryName">Tên danh mục</label>
+                <input id="categoryName" name="categoryName" type="text" required
+                       th:value="${isEdit ? category.categoryName : ''}">
+
+                <div class="form-actions">
+                    <button class="btn btn-primary" type="submit" th:text="${isEdit} ? 'Lưu thay đổi' : 'Tạo danh mục'"></button>
+                    <a class="btn btn-secondary" th:href="@{/admin/categories}">Hủy</a>
+                </div>
+            </form>
+        </section>
+    </main>
+</div>
+</body>
+</html>

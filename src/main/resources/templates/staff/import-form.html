@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nhập kho</title>
+    <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/form.css}">
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{fragments/header :: managementSidebar('staff-inventory')}"></aside>
+
+    <main class="admin-main">
+        <header th:replace="~{fragments/header :: managementTopbar('Nhập kho')}"></header>
+
+        <section class="form-panel">
+            <div class="form-container" style="max-width: 800px;">
+                <h2>Lập phiếu nhập kho</h2>
+
+                <p class="alert error" th:if="${error}" th:text="${error}"></p>
+
+                <form th:action="@{/staff/inventory/import-batch}" method="post">
+                    <div class="form-group">
+                        <label for="supplierId">Nhà cung cấp <span class="required">*</span></label>
+                        <select name="supplierId" id="supplierId" required>
+                            <option value="" disabled selected>Chọn nhà cung cấp</option>
+                            <option th:each="sup : ${suppliers}" th:value="${sup.supplierId}" th:text="${sup.supplierName}"></option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Danh sách sản phẩm nhập <span class="required">*</span></label>
+                        <table id="importTable" style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                            <thead>
+                                <tr style="background: #f5f5f5;">
+                                    <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Sản phẩm</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd; text-align: center; width: 120px;">Số lượng</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd; text-align: center; width: 150px;">Giá nhập (VND)</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd; text-align: center; width: 80px;">Bỏ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="importRows">
+                                <tr>
+                                    <td style="padding: 5px; border: 1px solid #ddd;">
+                                        <select name="productIds" required style="width: 100%;">
+                                            <option value="" disabled selected>Chọn sản phẩm</option>
+                                            <option th:each="prod : ${products}" th:value="${prod.productId}" th:text="${prod.productCode + ' - ' + prod.productName}"></option>
+                                        </select>
+                                    </td>
+                                    <td style="padding: 5px; border: 1px solid #ddd; text-align: center;">
+                                        <input type="number" name="quantities" min="1" value="1" required style="width: 100%;">
+                                    </td>
+                                    <td style="padding: 5px; border: 1px solid #ddd; text-align: center;">
+                                        <input type="number" name="importPrices" min="0" value="0" required style="width: 100%;">
+                                    </td>
+                                    <td style="padding: 5px; border: 1px solid #ddd; text-align: center;">
+                                        <button type="button" class="btn btn-danger" onclick="removeRow(this)" style="padding: 5px 10px;">X</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <button type="button" class="btn btn-secondary" onclick="addRow()" style="margin-top: 10px;">+ Thêm dòng</button>
+                    </div>
+
+                    <div class="form-actions" style="margin-top: 20px;">
+                        <a class="btn btn-secondary" th:href="@{/staff/inventory}">Hủy</a>
+                        <button class="btn btn-primary" type="submit">Hoàn tất nhập hàng</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    var productsList = /*[[${products}]]*/ [];
+    /*]]>*/
+
+    function addRow() {
+        var tbody = document.getElementById('importRows');
+        var tr = document.createElement('tr');
+        
+        var selectHtml = '<select name="productIds" required style="width: 100%;"><option value="" disabled selected>Chọn sản phẩm</option>';
+        for (var i = 0; i < productsList.length; i++) {
+            var p = productsList[i];
+            selectHtml += '<option value="' + p.productId + '">' + p.productCode + ' - ' + p.productName + '</option>';
+        }
+        selectHtml += '</select>';
+
+        tr.innerHTML = '<td style="padding: 5px; border: 1px solid #ddd;">' + selectHtml + '</td>' +
+                       '<td style="padding: 5px; border: 1px solid #ddd; text-align: center;"><input type="number" name="quantities" min="1" value="1" required style="width: 100%;"></td>' +
+                       '<td style="padding: 5px; border: 1px solid #ddd; text-align: center;"><input type="number" name="importPrices" min="0" value="0" required style="width: 100%;"></td>' +
+                       '<td style="padding: 5px; border: 1px solid #ddd; text-align: center;"><button type="button" class="btn btn-danger" onclick="removeRow(this)" style="padding: 5px 10px;">X</button></td>';
+        tbody.appendChild(tr);
+    }
+
+    function removeRow(btn) {
+        var tr = btn.parentNode.parentNode;
+        var tbody = tr.parentNode;
+        if (tbody.children.length > 1) {
+            tbody.removeChild(tr);
+        } else {
+            alert("Phải có ít nhất một sản phẩm để nhập kho.");
+        }
+    }
+</script>
+</body>
+</html>

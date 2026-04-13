@@ -11,6 +11,12 @@ public interface SupplierService {
 
     List<Supplier> findAll();
 
+    Supplier createSupplier(String supplierName, String phone, String address);
+
+    Supplier updateSupplier(Integer id, String supplierName, String phone, String address);
+
+    void deleteSupplier(Integer id);
+
     Supplier save(Supplier entity);
 
     void deleteById(Integer id);

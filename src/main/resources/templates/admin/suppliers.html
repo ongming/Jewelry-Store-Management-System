@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý nhà cung cấp</title>
+    <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/catalog.css}">
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{fragments/header :: managementSidebar('suppliers')}"></aside>
+
+    <main class="admin-main">
+        <header th:replace="~{fragments/header :: managementTopbar('Quản lý nhà cung cấp')}"></header>
+
+        <section class="catalog-panel">
+            <div class="catalog-panel__top">
+                <h2>Danh sách nhà cung cấp</h2>
+                <a class="btn btn-primary" th:href="@{/admin/suppliers/new}">+ Thêm nhà cung cấp</a>
+            </div>
+
+            <p class="alert success" th:if="${success}" th:text="${success}"></p>
+            <p class="alert error" th:if="${error}" th:text="${error}"></p>
+
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Tên nhà cung cấp</th>
+                    <th>Số điện thoại</th>
+                    <th>Địa chỉ</th>
+                    <th>Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="supplier : ${suppliers}">
+                    <td th:text="${supplier.supplierId}">1</td>
+                    <td th:text="${supplier.supplierName}">Tên NCC</td>
+                    <td th:text="${supplier.phone}">Phone</td>
+                    <td th:text="${supplier.address}">Address</td>
+                    <td class="actions-cell">
+                        <a class="btn btn-secondary" th:href="@{/admin/suppliers/{id}/edit(id=${supplier.supplierId})}">Sửa</a>
+                        <form th:action="@{/admin/suppliers/{id}/delete(id=${supplier.supplierId})}" method="post">
+                            <button class="btn btn-danger" type="submit">Xóa</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</div>
+</body>
+</html>

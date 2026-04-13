@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý danh mục</title>
+    <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/catalog.css}">
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{fragments/header :: managementSidebar('categories')}"></aside>
+
+    <main class="admin-main">
+        <header th:replace="~{fragments/header :: managementTopbar('Quản lý danh mục')}"></header>
+
+        <section class="catalog-panel">
+            <div class="catalog-panel__top">
+                <h2>Danh sách danh mục</h2>
+                <a class="btn btn-primary" th:href="@{/admin/categories/new}">+ Thêm danh mục</a>
+            </div>
+
+            <p class="alert success" th:if="${success}" th:text="${success}"></p>
+            <p class="alert error" th:if="${error}" th:text="${error}"></p>
+
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Tên danh mục</th>
+                    <th>Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="category : ${categories}">
+                    <td th:text="${category.categoryId}">1</td>
+                    <td th:text="${category.categoryName}">Nhẫn</td>
+                    <td class="actions-cell">
+                        <a class="btn btn-secondary" th:href="@{/admin/categories/{id}/edit(id=${category.categoryId})}">Sửa</a>
+                        <form th:action="@{/admin/categories/{id}/delete(id=${category.categoryId})}" method="post">
+                            <button class="btn btn-danger" type="submit">Xóa</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</div>
+</body>
+</html>

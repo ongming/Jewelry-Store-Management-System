@@ -145,9 +145,17 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private Product normalizeDisplayText(Product product) {
-        product.setProductName(fixMojibake(product.getProductName()));
-        if (product.getCategory() != null) {
-            product.getCategory().setCategoryName(fixMojibake(product.getCategory().getCategoryName()));
+        if (product == null) {
+            return null;
+        }
+        try {
+            product.setProductName(fixMojibake(product.getProductName()));
+            if (product.getCategory() != null) {
+                product.getCategory().setCategoryName(fixMojibake(product.getCategory().getCategoryName()));
+            }
+        } catch (Exception e) {
+            // Log exception nhưng không throw, để tránh làm hỏng toàn bộ danh sách
+            System.err.println("Error normalizing product: " + e.getMessage());
         }
         return product;
     }

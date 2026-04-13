@@ -50,6 +50,7 @@ public class RoleInterceptor implements HandlerInterceptor {
             || uri.startsWith("/products/manage")
             || uri.startsWith("/products/categories")
             || uri.startsWith("/auth/accounts")
+            || uri.startsWith("/admin/suppliers")
             || uri.startsWith("/admin");
     }
 
@@ -63,4 +64,3 @@ public class RoleInterceptor implements HandlerInterceptor {
             || uri.startsWith("/staff");
     }
 }
-

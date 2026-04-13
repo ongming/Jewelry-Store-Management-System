@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cửa hàng trang sức | Sản phẩm</title>
+    <link rel="stylesheet" th:href="@{/css/guest/common.css}">
+    <link rel="stylesheet" th:href="@{/css/guest/products.css}">
+</head>
+<body class="page-products">
+<div th:replace="~{fragments/header :: guestHeader(true)}"></div>
+
+<section class="container section-space">
+    <div class="section-title section-title--lux">
+        <p>Bộ sưu tập</p>
+        <h1>Sản phẩm cao cấp</h1>
+    </div>
+
+    <div class="products-layout">
+        <aside class="filter-panel lux-card">
+            <h3>Bộ lọc thông minh</h3>
+            <form th:action="@{/products}" method="get" class="lux-filter-form">
+                <label for="category"><span>◈</span> Danh mục</label>
+                <select id="category" name="category">
+                    <option value="">Tất cả</option>
+                    <option th:each="cat : ${categories}" th:value="${cat}" th:text="${cat}"
+                            th:selected="${selectedCategory == cat}"></option>
+                </select>
+
+                <label for="minPrice"><span>₫</span> Giá từ</label>
+                <div class="range-wrap">
+                    <input id="minPrice" name="minPrice" type="range" min="0" max="50000000" step="500000"
+                           th:value="${minPrice != null ? minPrice : 0}">
+                    <small><span id="minPriceValue">0</span> VND</small>
+                </div>
+
+                <label for="maxPrice"><span>₫</span> Giá đến</label>
+                <div class="range-wrap">
+                    <input id="maxPrice" name="maxPrice" type="range" min="0" max="50000000" step="500000"
+                           th:value="${maxPrice != null ? maxPrice : 15000000}">
+                    <small><span id="maxPriceValue">0</span> VND</small>
+                </div>
+
+                <label for="sort"><span>↕</span> Sắp xếp</label>
+                <select id="sort" name="sort">
+                    <option value="priceAsc" th:selected="${sort == 'priceAsc'}">Giá tăng dần</option>
+                    <option value="priceDesc" th:selected="${sort == 'priceDesc'}">Giá giảm dần</option>
+                </select>
+
+                <button type="submit" class="btn-gold btn-gold--glow">ÁP DỤNG</button>
+            </form>
+        </aside>
+
+        <div>
+            <div class="product-grid">
+                <article class="product-card lux-card" th:each="item : ${products}">
+                    <a class="product-image-wrap" th:href="@{/products/{id}(id=${item.id})}">
+                        <img th:src="${item.imageUrl}" th:alt="${item.productName}">
+                    </a>
+                    <div class="product-card-content">
+                        <small class="product-category" th:text="${item.category}">NHẪN</small>
+                        <h3 th:text="${item.productName}">Tên sản phẩm</h3>
+                        <p class="product-price" th:text="${#numbers.formatDecimal(item.price, 0, 'COMMA', 0, 'POINT')} + ' VND'">0 VND</p>
+                        <a class="explore-link" th:href="@{/products/{id}(id=${item.id})}">Khám phá →</a>
+                    </div>
+                </article>
+            </div>
+
+            <p class="empty-state" th:if="${#lists.isEmpty(products)}">Không có kết quả phù hợp với bộ lọc hiện tại.</p>
+
+            <div class="pagination" th:if="${totalPages > 1}">
+                <a th:if="${hasPrev}"
+                   th:href="@{/products(category=${selectedCategory},minPrice=${minPrice},maxPrice=${maxPrice},sort=${sort},page=${currentPage - 1})}">
+                    Trang trước
+                </a>
+                <span th:each="item : ${pageItems}">
+                    <span class="dots" th:if="${item.ellipsis}">...</span>
+                    <a th:if="${!item.ellipsis}"
+                       th:href="@{/products(category=${selectedCategory},minPrice=${minPrice},maxPrice=${maxPrice},sort=${sort},page=${item.page})}"
+                       th:classappend="${item.active} ? 'active-page' : ''"
+                       th:text="${item.page}">1</a>
+                </span>
+                <a th:if="${hasNext}"
+                   th:href="@{/products(category=${selectedCategory},minPrice=${minPrice},maxPrice=${maxPrice},sort=${sort},page=${currentPage + 1})}">
+                    Trang sau
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div th:replace="~{fragments/footer :: guestFooter}"></div>
+
+<script>
+    (function () {
+        const minInput = document.getElementById('minPrice');
+        const maxInput = document.getElementById('maxPrice');
+        const minValue = document.getElementById('minPriceValue');
+        const maxValue = document.getElementById('maxPriceValue');
+
+        function formatMoney(value) {
+            return Number(value || 0).toLocaleString('vi-VN');
+        }
+
+        function syncLabels() {
+            if (minValue) minValue.textContent = formatMoney(minInput.value);
+            if (maxValue) maxValue.textContent = formatMoney(maxInput.value);
+        }
+
+        if (minInput && maxInput) {
+            minInput.addEventListener('input', syncLabels);
+            maxInput.addEventListener('input', syncLabels);
+            syncLabels();
+        }
+    })();
+</script>
+</body>
+</html>

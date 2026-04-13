@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng điều khiển quản trị</title>
+    <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{fragments/header :: managementSidebar('dashboard')}"></aside>
+
+    <main class="admin-main">
+        <header th:replace="~{fragments/header :: managementTopbar('Bảng điều khiển quản trị')}"></header>
+
+        <section class="stats-grid">
+            <article>
+                <h3>Đơn hàng hôm nay</h3>
+                <p th:text="${ordersToday}">0</p>
+            </article>
+            <article>
+                <h3>Doanh thu hôm nay</h3>
+                <p th:text="${#numbers.formatDecimal(revenueToday, 0, 'COMMA', 0, 'POINT')} + ' VND'">0</p>
+            </article>
+            <article>
+                <h3>Sản phẩm sắp hết</h3>
+                <p th:text="${lowStock}">0</p>
+            </article>
+        </section>
+
+        <section class="orders-section">
+            <h2>Đơn hàng gần đây</h2>
+            <table>
+                <thead>
+                <tr>
+                    <th>Mã đơn</th>
+                    <th>Khách hàng</th>
+                    <th>Trạng thái</th>
+                    <th>Số tiền</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="order : ${recentOrders}">
+                    <td th:text="${order.code}">OD-0000</td>
+                    <td th:text="${order.customer}">Khách hàng</td>
+                    <td th:text="${order.status}">Trạng thái</td>
+                    <td th:text="${#numbers.formatDecimal(order.amount, 0, 'COMMA', 0, 'POINT')} + ' VND'">0 VND</td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</div>
+</body>
+</html>

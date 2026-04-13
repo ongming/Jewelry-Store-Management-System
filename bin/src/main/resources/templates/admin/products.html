@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý sản phẩm</title>
+    <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/catalog.css}">
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{fragments/header :: managementSidebar('products')}"></aside>
+
+    <main class="admin-main">
+        <header th:replace="~{fragments/header :: managementTopbar('Quản lý sản phẩm')}"></header>
+
+        <section class="catalog-panel">
+            <div class="catalog-panel__top">
+                <h2>Danh sách sản phẩm</h2>
+                <a class="btn btn-primary" th:href="@{/admin/products/new}">+ Thêm sản phẩm</a>
+            </div>
+
+            <p class="alert success" th:if="${success}" th:text="${success}"></p>
+            <p class="alert error" th:if="${error}" th:text="${error}"></p>
+
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Hình ảnh</th>
+                    <th>Mã</th>
+                    <th>Tên sản phẩm</th>
+                    <th>Danh mục</th>
+                    <th>Giá</th>
+                    <th>Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="product : ${products}">
+                    <td th:text="${product.productId}">1</td>
+                    <td>
+                        <img class="product-thumb"
+                             th:src="${product.imageUrl != null and !#strings.isEmpty(product.imageUrl) ? product.imageUrl : 'https://placehold.co/80x80?text=No+Image'}"
+                             alt="product image">
+                    </td>
+                    <td th:text="${product.productCode}">SP001</td>
+                    <td th:text="${product.productName}">Tên sản phẩm</td>
+                    <td th:text="${product.category.categoryName}">Nhẫn</td>
+                    <td th:text="${#numbers.formatDecimal(product.basePrice, 0, 'COMMA', 0, 'POINT')} + ' VND'">0</td>
+                    <td class="actions-cell">
+                        <a class="btn btn-secondary" th:href="@{/admin/products/{id}/edit(id=${product.productId})}">Sửa</a>
+                        <form th:action="@{/admin/products/{id}/delete(id=${product.productId})}" method="post">
+                            <button class="btn btn-danger" type="submit">Xóa</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</div>
+</body>
+</html>

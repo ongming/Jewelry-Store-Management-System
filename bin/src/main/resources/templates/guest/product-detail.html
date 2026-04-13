@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cửa hàng trang sức | Chi tiết sản phẩm</title>
+    <link rel="stylesheet" th:href="@{/css/guest/common.css}">
+    <link rel="stylesheet" th:href="@{/css/guest/products.css}">
+</head>
+<body class="page-product-detail">
+<div th:replace="~{fragments/header :: guestHeader(false)}"></div>
+
+<section class="container section-space detail-grid">
+    <div class="gallery-block lux-card">
+        <img id="mainImage" class="main-image" th:src="${mainImageUrl}" th:alt="${product.productName}">
+        <div class="thumb-grid">
+            <button class="thumb-btn" type="button" th:each="img, stat : ${detailImages}"
+                    th:classappend="${stat.index == 0} ? 'active' : ''"
+                    th:attr="data-img=${img.imageUrl}">
+                <img th:src="${img.imageUrl}" th:alt="${product.productName}">
+            </button>
+            <button class="thumb-btn" type="button" th:if="${#lists.isEmpty(detailImages)}" data-img="https://placehold.co/800x600?text=No+Image">
+                <img src="https://placehold.co/800x600?text=No+Image" alt="No Image">
+            </button>
+        </div>
+    </div>
+
+    <div class="detail-info lux-card">
+        <p class="meta" th:text="${product.category != null ? product.category.categoryName : 'Khác'}">DANH MỤC</p>
+        <h1 th:text="${product.productName}">Tên sản phẩm</h1>
+        <h2 class="detail-price" th:text="${#numbers.formatDecimal(product.basePrice, 0, 'COMMA', 0, 'POINT')} + ' VND'">0 VND</h2>
+
+        <ul class="attribute-list">
+            <li th:each="attr : ${product.attributes}">
+                <strong th:text="${attr.attributeName} + ':'">Thuộc tính:</strong>
+                <span th:text="${attr.attributeValue}">Giá trị</span>
+            </li>
+            <li th:if="${#lists.isEmpty(product.attributes)}">
+                <span>Chưa có thông tin thuộc tính cho sản phẩm này.</span>
+            </li>
+        </ul>
+
+        <div class="detail-actions">
+            <a class="btn-gold btn-gold--glow" href="tel:0909000111">LIÊN HỆ NHÂN VIÊN</a>
+            <a class="btn-outline" href="https://zalo.me/0909000111" target="_blank" rel="noopener">Tư vấn qua Zalo</a>
+        </div>
+    </div>
+</section>
+
+<section class="container description-section">
+    <h3>Mô tả sản phẩm</h3>
+    <p th:text="${product.detail}">Mô tả sản phẩm.</p>
+</section>
+
+<div th:replace="~{fragments/footer :: guestFooter}"></div>
+
+<script>
+    (function () {
+        const mainImage = document.getElementById('mainImage');
+        const thumbButtons = document.querySelectorAll('.thumb-btn');
+
+        thumbButtons.forEach((button) => {
+            button.addEventListener('click', function () {
+                const nextImage = this.getAttribute('data-img');
+                if (mainImage && nextImage) {
+                    mainImage.src = nextImage;
+                }
+                thumbButtons.forEach((btn) => btn.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    })();
+</script>
+</body>
+</html>

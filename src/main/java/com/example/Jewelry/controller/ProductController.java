@@ -4,7 +4,10 @@ import com.example.Jewelry.model.entity.Product;
 import com.example.Jewelry.model.entity.ProductAttribute;
 import com.example.Jewelry.model.entity.ProductImage;
 import com.example.Jewelry.service.CategoryService;
+import com.example.Jewelry.service.InventoryService;
 import com.example.Jewelry.service.ProductService;
+import com.example.Jewelry.service.SupplierService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,11 +35,17 @@ public class ProductController {
 
     private final ProductService productService;
     private final CategoryService categoryService;
+    private final InventoryService inventoryService;
+    private final SupplierService supplierService;
 
     public ProductController(ProductService productService,
-                             CategoryService categoryService) {
+                             CategoryService categoryService,
+                             InventoryService inventoryService,
+                             SupplierService supplierService) {
         this.productService = productService;
         this.categoryService = categoryService;
+        this.inventoryService = inventoryService;
+        this.supplierService = supplierService;
     }
 
     @GetMapping({"/", "/home", "/guest/home"})
@@ -151,10 +160,112 @@ public class ProductController {
         return "staff/products";
     }
 
+    @GetMapping("/staff/inventory")
+    public String staffInventory(Model model) {
+        model.addAttribute("products", productService.findAll());
+        model.addAttribute("suppliers", supplierService.findAll());
+        model.addAttribute("activePage", "staff-inventory");
+        return "staff/inventory";
+    }
+
+    @GetMapping("/staff/inventory/import/new")
+    public String staffImportBatchForm(Model model) {
+        model.addAttribute("products", productService.findAll());
+        model.addAttribute("suppliers", supplierService.findAll());
+        model.addAttribute("activePage", "staff-inventory");
+        return "staff/import-form";
+    }
+
+    @PostMapping("/staff/inventory/import-batch")
+    public String importStockBatchStaff(@RequestParam Integer supplierId,
+                                        @RequestParam List<Integer> productIds,
+                                        @RequestParam List<Integer> quantities,
+                                        @RequestParam List<BigDecimal> importPrices,
+                                        HttpSession session,
+                                        RedirectAttributes redirectAttributes) {
+        try {
+            Integer staffAccountId = (Integer) session.getAttribute("accountId");
+            inventoryService.importStock(supplierId, staffAccountId, productIds, quantities, importPrices);
+            redirectAttributes.addFlashAttribute("success", "Nhập hàng loạt thành công.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
+            return "redirect:/staff/inventory/import/new";
+        }
+        return "redirect:/staff/inventory";
+    }
+
+    @PostMapping("/staff/inventory/import")
+    public String importStockStaff(@RequestParam Integer productId, 
+                                   @RequestParam int quantity, 
+                                   @RequestParam Integer supplierId,
+                                   @RequestParam BigDecimal importPrice,
+                                   HttpSession session,
+                                   RedirectAttributes redirectAttributes) {
+        try {
+            Integer staffAccountId = (Integer) session.getAttribute("accountId");
+            inventoryService.addStock(productId, quantity, supplierId, importPrice, staffAccountId);
+            redirectAttributes.addFlashAttribute("success", "Nhập kho thành công.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
+        }
+        return "redirect:/staff/inventory";
+    }
+
     @GetMapping({"/products/manage", "/admin/products"})
     public String productManagement(Model model) {
         model.addAttribute("products", productService.findAll());
         return "admin/products";
+    }
+
+    @GetMapping("/admin/inventory")
+    public String adminInventory(Model model) {
+        model.addAttribute("products", productService.findAll());
+        model.addAttribute("suppliers", supplierService.findAll());
+        model.addAttribute("activePage", "inventory");
+        return "admin/inventory";
+    }
+
+    @GetMapping("/admin/inventory/import/new")
+    public String adminImportBatchForm(Model model) {
+        model.addAttribute("products", productService.findAll());
+        model.addAttribute("suppliers", supplierService.findAll());
+        model.addAttribute("activePage", "inventory");
+        return "admin/import-form";
+    }
+
+    @PostMapping("/admin/inventory/import-batch")
+    public String importStockBatchAdmin(@RequestParam Integer supplierId,
+                                        @RequestParam List<Integer> productIds,
+                                        @RequestParam List<Integer> quantities,
+                                        @RequestParam List<BigDecimal> importPrices,
+                                        HttpSession session,
+                                        RedirectAttributes redirectAttributes) {
+        try {
+            Integer staffAccountId = (Integer) session.getAttribute("accountId");
+            inventoryService.importStock(supplierId, staffAccountId, productIds, quantities, importPrices);
+            redirectAttributes.addFlashAttribute("success", "Nhập hàng loạt thành công.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
+            return "redirect:/admin/inventory/import/new";
+        }
+        return "redirect:/admin/inventory";
+    }
+
+    @PostMapping("/admin/inventory/import")
+    public String importStockAdmin(@RequestParam Integer productId, 
+                                   @RequestParam int quantity, 
+                                   @RequestParam Integer supplierId,
+                                   @RequestParam BigDecimal importPrice,
+                                   HttpSession session,
+                                   RedirectAttributes redirectAttributes) {
+        try {
+            Integer staffAccountId = (Integer) session.getAttribute("accountId");
+            inventoryService.addStock(productId, quantity, supplierId, importPrice, staffAccountId);
+            redirectAttributes.addFlashAttribute("success", "Nhập kho thành công.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
+        }
+        return "redirect:/admin/inventory";
     }
 
     @GetMapping({"/products/manage/new", "/admin/products/new"})

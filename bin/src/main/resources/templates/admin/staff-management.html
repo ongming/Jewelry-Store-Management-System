@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý nhân sự</title>
+    <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/catalog.css}">
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{fragments/header :: managementSidebar('staff-management')}"></aside>
+
+    <main class="admin-main">
+        <header th:replace="~{fragments/header :: managementTopbar('Quản lý nhân sự')}"></header>
+
+        <section class="catalog-panel">
+            <div class="catalog-panel__top toolbar-wrap">
+                <h2>Danh sách nhân sự</h2>
+                <a class="btn btn-primary" th:href="@{/admin/staff-management(create=true)}">+ Thêm nhân sự</a>
+            </div>
+
+            <form class="table-toolbar" method="get" th:action="@{/admin/staff-management}">
+                <input type="text" name="keyword" placeholder="Tìm theo họ tên hoặc tên đăng nhập" th:value="${keyword}">
+                <select name="role">
+                    <option value="ALL" th:selected="${role == 'ALL'}">Tất cả vai trò</option>
+                    <option value="STAFF" th:selected="${role == 'STAFF'}">Nhân viên</option>
+                </select>
+                <button class="btn btn-secondary" type="submit">Lọc</button>
+            </form>
+
+            <p class="alert success" th:if="${success}" th:text="${success}"></p>
+            <p class="alert error" th:if="${error}" th:text="${error}"></p>
+
+            <table class="staff-table">
+                <thead>
+                <tr>
+                    <th>Ảnh đại diện</th>
+                    <th>Họ và tên</th>
+                    <th>Tên đăng nhập</th>
+                    <th>Vai trò</th>
+                    <th>Quản lý bởi</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="row : ${rows}">
+                    <td><img class="avatar-thumb" th:src="${row.avatarUrl}" alt="avatar"></td>
+                    <td th:text="${row.fullName}">Nguyễn Văn A</td>
+                    <td th:text="${row.username}">username</td>
+                    <td>
+                        <span class="badge" th:classappend="${row.role == 'ADMIN'} ? 'badge-role-admin' : 'badge-role-staff'"
+                              th:text="${row.role == 'ADMIN' ? 'Quản trị viên' : 'Nhân viên'}">Nhân viên</span>
+                    </td>
+                    <td th:text="${row.managerName}">Admin</td>
+                    <td>
+                        <span class="badge" th:classappend="${row.status == 'ACTIVE'} ? 'badge-status-active' : 'badge-status-inactive'"
+                              th:text="${row.status == 'ACTIVE' ? 'Hoạt động' : 'Ngừng hoạt động'}">Hoạt động</span>
+                    </td>
+                    <td class="actions-cell">
+                        <a class="btn btn-secondary" th:href="@{/admin/staff-management(editId=${row.accountId},keyword=${keyword},role=${role})}">Sửa</a>
+                        <form th:action="@{/admin/staff-management/{id}/delete(id=${row.accountId})}" method="post">
+                            <button class="btn btn-danger" type="submit">Xóa</button>
+                        </form>
+                        <a class="btn btn-secondary" th:href="@{/admin/staff-management(viewId=${row.accountId},keyword=${keyword},role=${role})}">Xem</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+            <article class="view-card" th:if="${viewRow != null}">
+                <h3>Thông tin tài khoản</h3>
+                <p><strong>Họ và tên:</strong> <span th:text="${viewRow.fullName}"></span></p>
+                <p><strong>Tên đăng nhập:</strong> <span th:text="${viewRow.username}"></span></p>
+                <p><strong>Vai trò:</strong> <span th:text="${viewRow.role == 'ADMIN' ? 'Quản trị viên' : 'Nhân viên'}"></span></p>
+                <p><strong>Quản lý bởi:</strong> <span th:text="${viewRow.managerName}"></span></p>
+                <p><strong>Trạng thái:</strong> <span th:text="${viewRow.status == 'ACTIVE' ? 'Hoạt động' : 'Ngừng hoạt động'}"></span></p>
+            </article>
+        </section>
+    </main>
+</div>
+
+<div class="modal" th:classappend="${showModal} ? 'show' : ''" th:if="${showModal}">
+    <div class="modal-card">
+        <h3 th:text="${isEdit} ? 'Chỉnh sửa tài khoản' : 'Thêm tài khoản mới'">Biểu mẫu</h3>
+        <form method="post"
+                            th:action="${isEdit} ? @{/admin/staff-management/{id}/update(id=${editRow.accountId})} : @{/admin/staff-management}">
+            <label for="fullName">Họ và tên</label>
+            <input id="fullName" name="fullName" type="text" required th:value="${isEdit ? editRow.fullName : ''}">
+
+            <label for="username">Tên đăng nhập</label>
+            <input id="username" name="username" type="text" required th:value="${isEdit ? editRow.username : ''}" th:readonly="${isEdit}">
+
+            <label for="password">Mật khẩu</label>
+            <input id="password" name="password" type="password" th:required="${!isEdit}" placeholder="Nhập mật khẩu mới nếu muốn đổi">
+
+            <label for="statusType">Trạng thái</label>
+            <select id="statusType" name="status">
+                <option value="ACTIVE" th:selected="${isEdit ? editRow.status == 'ACTIVE' : true}">Hoạt động</option>
+                <option value="INACTIVE" th:selected="${isEdit ? editRow.status == 'INACTIVE' : false}">Ngừng hoạt động</option>
+            </select>
+
+            <div class="form-actions">
+                <button class="btn btn-primary" type="submit" th:text="${isEdit} ? 'Lưu thay đổi' : 'Tạo tài khoản'"></button>
+                <a class="btn btn-secondary" th:href="@{/admin/staff-management(keyword=${keyword},role=${role})}">Hủy</a>
+            </div>
+        </form>
+    </div>
+</div>
+</body>
+</html>
+

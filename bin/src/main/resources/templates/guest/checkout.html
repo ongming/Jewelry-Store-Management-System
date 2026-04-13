@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cửa hàng trang sức | Thanh toán</title>
+    <link rel="stylesheet" th:href="@{/css/guest/common.css}">
+    <link rel="stylesheet" th:href="@{/css/guest/products.css}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: guestHeader(false)}"></div>
+
+<section class="container section-space checkout-grid">
+    <form class="checkout-form">
+        <h1>Thanh toán khách lẻ</h1>
+
+        <label for="CustomerName">Họ tên khách hàng</label>
+        <input id="CustomerName" name="CustomerName" type="text" required>
+
+        <label for="Phone">Số điện thoại</label>
+        <input id="Phone" name="Phone" type="tel" required>
+
+        <label for="Email">Email</label>
+        <input id="Email" name="Email" type="email" required>
+
+        <label for="ShippingAddress">Địa chỉ giao hàng</label>
+        <textarea id="ShippingAddress" name="ShippingAddress" rows="4" required></textarea>
+
+        <label for="PaymentMethod">Phương thức thanh toán</label>
+        <select id="PaymentMethod" name="PaymentMethod">
+            <option value="COD">COD</option>
+            <option value="Bank">Chuyển khoản</option>
+            <option value="MomoVNPAY">Momo/VNPAY</option>
+        </select>
+
+        <button type="submit" class="btn-gold">Đặt hàng</button>
+    </form>
+
+    <aside class="summary-panel">
+        <h3>Tổng tiền đơn hàng</h3>
+        <p th:text="${#numbers.formatDecimal(orderTotal, 0, 'COMMA', 0, 'POINT')} + ' VND'">0 VND</p>
+    </aside>
+</section>
+
+<div th:replace="~{fragments/footer :: guestFooter}"></div>
+</body>
+</html>

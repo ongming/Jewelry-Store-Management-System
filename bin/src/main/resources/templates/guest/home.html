@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cửa hàng trang sức | Trang chủ</title>
+    <link rel="stylesheet" th:href="@{/css/guest/common.css}">
+    <link rel="stylesheet" th:href="@{/css/guest/home.css}">
+</head>
+<body class="guest-home">
+<div th:replace="~{fragments/header :: guestHeader(true)}"></div>
+
+<section class="hero">
+    <div class="hero-content container">
+        <p class="hero-subtitle">Bộ sưu tập cao cấp 2026</p>
+        <h1>Trang sức tinh tế cho phong cách hiện đại</h1>
+        <p>Khám phá những thiết kế thủ công sang trọng, lấy cảm hứng từ thời trang cao cấp.</p>
+        <a class="btn-gold" th:href="@{/products}">Mua ngay</a>
+    </div>
+</section>
+
+<section class="container section-space">
+    <div class="section-title">
+        <p>Sản phẩm nổi bật</p>
+        <h2>Tuyển chọn đặc biệt</h2>
+    </div>
+    <div class="product-grid">
+        <article class="product-card" th:each="item : ${featuredProducts}">
+            <img th:src="${item.imageUrl}" th:alt="${item.productName}">
+            <div class="product-card-content">
+                <h3 th:text="${item.productName}">Tên sản phẩm</h3>
+                <p th:text="${#numbers.formatDecimal(item.price, 0, 'COMMA', 0, 'POINT')} + ' VND'">0 VND</p>
+                <a th:href="@{/products/{id}(id=${item.id})}">Xem chi tiết</a>
+            </div>
+        </article>
+    </div>
+</section>
+
+<section class="container section-space">
+    <div class="section-title">
+        <p>Danh mục</p>
+        <h2>Tìm theo danh mục</h2>
+    </div>
+    <div class="category-grid">
+        <a class="category-card" th:each="cat : ${categories}" th:text="${cat}"
+           th:href="@{/products(category=${cat})}">Nhẫn</a>
+    </div>
+</section>
+
+<div th:replace="~{fragments/footer :: guestFooter}"></div>
+</body>
+</html>

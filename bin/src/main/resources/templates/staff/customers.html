@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý khách hàng</title>
+    <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/catalog.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/customer-module.css}">
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{fragments/header :: managementSidebar('staff-customers')}"></aside>
+
+    <main class="admin-main">
+        <header th:replace="~{fragments/header :: managementTopbar('Khách hàng')}"></header>
+
+        <p class="alert success" th:if="${success}" th:text="${success}"></p>
+        <p class="alert error" th:if="${error}" th:text="${error}"></p>
+
+        <section class="customer-stats-grid">
+            <article class="stats-card">
+                <h3>Tổng khách hàng</h3>
+                <p th:text="${totalCustomers}">0</p>
+            </article>
+            <article class="stats-card">
+                <h3>Tổng đơn hàng</h3>
+                <p th:text="${totalOrders}">0</p>
+            </article>
+            <article class="stats-card">
+                <h3>Tổng doanh thu</h3>
+                <p th:text="${#numbers.formatDecimal(totalRevenue, 0, 'COMMA', 0, 'POINT')} + ' VND'">0 VND</p>
+            </article>
+            <article class="stats-card" th:if="${selectedCustomer != null}">
+                <h3>Khách đang xem</h3>
+                <p th:text="${selectedCustomer.customerName}">Khách hàng</p>
+            </article>
+        </section>
+
+        <section class="catalog-panel customer-module">
+            <div class="customer-module__layout">
+                <article class="customer-list-panel">
+                    <div class="catalog-panel__top">
+                        <h2>Danh sách khách hàng</h2>
+                    </div>
+
+                    <form class="table-toolbar customer-search" method="get" th:action="@{/staff/customers}">
+                        <input type="text"
+                               id="keyword"
+                               name="keyword"
+                               placeholder="Tìm theo tên khách hàng hoặc số điện thoại"
+                               th:value="${keyword}">
+                        <button class="btn btn-primary" type="submit">Tìm kiếm</button>
+                        <a class="btn btn-secondary" th:href="@{/staff/customers}">Đặt lại</a>
+                    </form>
+
+                    <div class="table-shell">
+                        <table class="customer-table">
+                            <thead>
+                            <tr>
+                                <th>Khách hàng</th>
+                                <th>SĐT</th>
+                                <th>Đơn hàng</th>
+                                <th>Tổng chi</th>
+                                <th>Gần nhất</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:if="${#lists.isEmpty(customerRows)}">
+                                <td class="empty-row" colspan="6">Không tìm thấy khách hàng phù hợp.</td>
+                            </tr>
+                            <tr th:each="row : ${customerRows}"
+                                th:classappend="${selectedCustomerId == row.customerId} ? 'is-selected' : ''">
+                                <td>
+                                    <a class="customer-link"
+                                                    th:href="@{/staff/customers(keyword=${keyword},customerId=${row.customerId})}"
+                                       th:text="${row.customerName}">Khách hàng</a>
+                                    <small th:text="${row.address != null ? row.address : 'Chưa có địa chỉ'}">Địa chỉ</small>
+                                </td>
+                                <td th:text="${row.phone != null ? row.phone : '--'}">--</td>
+                                <td th:text="${row.orderCount}">0</td>
+                                <td th:text="${#numbers.formatDecimal(row.totalSpent, 0, 'COMMA', 0, 'POINT')} + ' VND'">0 VND</td>
+                                <td th:text="${row.latestOrderDate}">--</td>
+                                <td>
+                                    <div class="actions-cell">
+                                        <a class="btn btn-secondary btn-sm"
+                                                         th:href="@{/staff/customers(keyword=${keyword},customerId=${row.customerId},editId=${row.customerId})}">
+                                            Sửa
+                                        </a>
+                                                     <form th:action="@{/staff/customers/{id}/delete(id=${row.customerId})}"
+                                              method="post"
+                                              onsubmit="return confirm('Xóa khách hàng này? Chỉ xóa được nếu chưa có đơn hàng.');">
+                                            <button class="btn btn-danger btn-sm" type="submit">Xóa</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+
+                <aside class="customer-detail-panel">
+                    <section class="detail-card">
+                        <h3 th:text="${editCustomer != null} ? 'Cập nhật khách hàng' : 'Thêm khách hàng mới'">Thêm khách hàng mới</h3>
+
+                           <form class="form-panel customer-form"
+                                        th:action="${editCustomer != null} ? @{/staff/customers/{id}/update(id=${editCustomer.customerId})} : @{/staff/customers}"
+                              method="post">
+                            <div class="customer-form__grid">
+                                <div class="customer-form__field">
+                                 <label for="customerName">Tên khách hàng</label>
+                                 <input id="customerName"
+                                     name="customerName"
+                                     type="text"
+                                     required
+                                     maxlength="150"
+                                     placeholder="Ví dụ: Nguyễn Văn A"
+                                     th:value="${editCustomer != null ? editCustomer.customerName : ''}">
+                                </div>
+
+                                <div class="customer-form__field">
+                                 <label for="phone">Số điện thoại</label>
+                                 <input id="phone"
+                                     name="phone"
+                                     type="text"
+                                     maxlength="20"
+                                     placeholder="Ví dụ: 0909123456"
+                                     th:value="${editCustomer != null ? editCustomer.phone : ''}">
+                                </div>
+
+                                <div class="customer-form__field customer-form__field--full">
+                                 <label for="address">Địa chỉ</label>
+                                 <input id="address"
+                                     name="address"
+                                     type="text"
+                                     maxlength="255"
+                                     placeholder="Ví dụ: 123 Lê Lợi, Quận 1, TP.HCM"
+                                     th:value="${editCustomer != null ? editCustomer.address : ''}">
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button class="btn btn-primary" type="submit"
+                                        th:text="${editCustomer != null} ? 'Lưu thay đổi' : 'Thêm khách hàng'">Thêm khách hàng</button>
+                                <a class="btn btn-secondary" th:if="${editCustomer != null}" th:href="@{/staff/customers(customerId=${selectedCustomerId},keyword=${keyword})}">Hủy</a>
+                            </div>
+                        </form>
+                    </section>
+
+                    <section class="detail-card" th:if="${selectedCustomer != null}">
+                        <h3>Đơn hàng của khách</h3>
+                        <p class="selected-customer-meta">
+                            <strong th:text="${selectedCustomer.customerName}">Khách hàng</strong>
+                            <span th:text="${selectedCustomer.phone != null ? selectedCustomer.phone : '--'}">--</span>
+                        </p>
+
+                        <div class="table-shell order-shell">
+                            <table class="order-summary-table">
+                                <thead>
+                                <tr>
+                                    <th>Mã đơn</th>
+                                    <th>Ngày</th>
+                                    <th>Trạng thái</th>
+                                    <th>Tổng tiền</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:if="${#lists.isEmpty(orderRows)}">
+                                    <td class="empty-row" colspan="4">Khách hàng chưa có đơn nào.</td>
+                                </tr>
+                                <tr th:each="order : ${orderRows}">
+                                    <td>
+                                        <a class="customer-link"
+                                         th:href="@{/staff/customers(keyword=${keyword},customerId=${selectedCustomerId},orderId=${order.orderId})}"
+                                           th:text="${order.orderNumber}">ORD-001</a>
+                                    </td>
+                                    <td th:text="${order.orderDate}">--</td>
+                                    <td>
+                                        <span class="badge"
+                                              th:classappend="${order.status == 'PAID'} ? ' badge-status-active' : (${order.status == 'CANCELLED'} ? ' badge-status-inactive' : ' badge-status-pending')"
+                                              th:text="${order.statusLabel}">Chờ thanh toán</span>
+                                    </td>
+                                    <td th:text="${#numbers.formatDecimal(order.orderTotal, 0, 'COMMA', 0, 'POINT')} + ' VND'">0 VND</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <section class="detail-card" th:if="${selectedOrder != null}">
+                        <h3>Chi tiết đơn hàng</h3>
+                        <p class="selected-customer-meta">
+                            <strong th:text="${selectedOrder.orderNumber}">ORD-001</strong>
+                            <span th:text="${selectedOrder.orderDate}">--</span>
+                        </p>
+
+                        <div class="table-shell detail-shell">
+                            <table class="order-detail-table">
+                                <thead>
+                                <tr>
+                                    <th>Mã SP</th>
+                                    <th>Sản phẩm</th>
+                                    <th>Loại</th>
+                                    <th>SL</th>
+                                    <th>Đơn giá</th>
+                                    <th>Thành tiền</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:if="${#lists.isEmpty(selectedOrderItems)}">
+                                    <td class="empty-row" colspan="6">Đơn hàng chưa có sản phẩm.</td>
+                                </tr>
+                                <tr th:each="item : ${selectedOrderItems}">
+                                    <td th:text="${item.productCode}">SP001</td>
+                                    <td th:text="${item.productName}">Sản phẩm</td>
+                                    <td th:text="${item.categoryName}">Nhẫn</td>
+                                    <td th:text="${item.quantity}">1</td>
+                                    <td th:text="${#numbers.formatDecimal(item.unitPrice, 0, 'COMMA', 0, 'POINT')} + ' VND'">0 VND</td>
+                                    <td th:text="${#numbers.formatDecimal(item.lineTotal, 0, 'COMMA', 0, 'POINT')} + ' VND'">0 VND</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <p class="order-total-line">
+                            Tổng tiền đơn:
+                            <strong th:text="${#numbers.formatDecimal(selectedOrderTotal, 0, 'COMMA', 0, 'POINT')} + ' VND'">0 VND</strong>
+                        </p>
+                    </section>
+                </aside>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>
+

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${isEdit} ? 'Cập nhật sản phẩm' : 'Thêm sản phẩm'">Sản phẩm</title>
+    <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/catalog.css}">
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{fragments/header :: managementSidebar('products')}"></aside>
+
+    <main class="admin-main">
+        <header th:replace="~{fragments/header :: managementTopbar(${isEdit} ? 'Cập nhật sản phẩm' : 'Thêm sản phẩm')}"></header>
+
+        <section class="catalog-panel form-panel">
+            <h2 th:text="${isEdit} ? 'Cập nhật sản phẩm' : 'Thêm sản phẩm mới'">Sản phẩm</h2>
+
+            <p class="alert error" th:if="${error}" th:text="${error}"></p>
+
+            <form th:action="${isEdit} ? @{/admin/products/{id}(id=${product.productId})} : @{/admin/products}" method="post" enctype="multipart/form-data">
+                <label for="productCode">Mã sản phẩm</label>
+                <input id="productCode" name="productCode" type="text" required
+                       th:value="${isEdit ? product.productCode : ''}">
+
+                <label for="productName">Tên sản phẩm</label>
+                <input id="productName" name="productName" type="text" required
+                       th:value="${isEdit ? product.productName : ''}">
+
+                <label for="basePrice">Giá bán (VND)</label>
+                <input id="basePrice" name="basePrice" type="number" min="1" step="0.01" required
+                       th:value="${isEdit ? product.basePrice : ''}">
+
+                <label for="imageUrl">URL hình ảnh</label>
+                <input id="imageUrl" name="imageUrl" type="url"
+                       placeholder="https://example.com/product.jpg"
+                       th:value="${isEdit ? product.imageUrl : ''}">
+
+                <label for="imageFile">Hoặc tải ảnh từ máy</label>
+                <input id="imageFile" name="imageFile" type="file" accept="image/*">
+
+                <label for="categoryId">Danh mục</label>
+                <select id="categoryId" name="categoryId" required>
+                    <option value="">-- Chọn danh mục --</option>
+                    <option th:each="category : ${categories}"
+                            th:value="${category.categoryId}"
+                            th:text="${category.categoryName}"
+                            th:selected="${isEdit ? category.categoryId == product.category.categoryId : false}">
+                    </option>
+                </select>
+
+                <div class="form-actions">
+                    <button class="btn btn-primary" type="submit" th:text="${isEdit} ? 'Lưu thay đổi' : 'Tạo sản phẩm'"></button>
+                    <a class="btn btn-secondary" th:href="@{/admin/products}">Hủy</a>
+                </div>
+            </form>
+        </section>
+    </main>
+</div>
+</body>
+</html>

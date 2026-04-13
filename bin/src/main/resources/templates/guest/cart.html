@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cửa hàng trang sức | Giỏ hàng</title>
+    <link rel="stylesheet" th:href="@{/css/guest/common.css}">
+    <link rel="stylesheet" th:href="@{/css/guest/products.css}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: guestHeader(false)}"></div>
+
+<section class="container section-space">
+    <div class="section-title">
+        <p>Lựa chọn của bạn</p>
+        <h1>Giỏ hàng</h1>
+    </div>
+
+    <div class="cart-layout">
+        <div class="cart-list">
+            <article class="cart-item" th:each="item : ${cartItems}">
+                <img th:src="${item.imageUrl}" th:alt="${item.productName}">
+                <div>
+                    <h3 th:text="${item.productName}">Tên sản phẩm</h3>
+                    <p th:text="${#numbers.formatDecimal(item.price, 0, 'COMMA', 0, 'POINT')} + ' VND'">0 VND</p>
+                    <label>
+                        Số lượng
+                        <input type="number" min="1" value="1">
+                    </label>
+                </div>
+            </article>
+        </div>
+
+        <aside class="summary-panel">
+            <h3>Tổng cộng</h3>
+            <p th:text="${#numbers.formatDecimal(totalPrice, 0, 'COMMA', 0, 'POINT')} + ' VND'">0 VND</p>
+            <a class="btn-gold" th:href="@{/checkout}">Thanh toán</a>
+        </aside>
+    </div>
+</section>
+
+<div th:replace="~{fragments/footer :: guestFooter}"></div>
+</body>
+</html>

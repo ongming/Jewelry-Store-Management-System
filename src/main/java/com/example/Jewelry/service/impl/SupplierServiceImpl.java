@@ -18,6 +18,33 @@ public class SupplierServiceImpl implements SupplierService {
     }
 
     @Override
+    public Supplier createSupplier(String supplierName, String phone, String address) {
+        Supplier supplier = new Supplier();
+        supplier.setSupplierName(supplierName);
+        supplier.setPhone(phone);
+        supplier.setAddress(address);
+        return SupplierRepository.save(supplier);
+    }
+
+    @Override
+    public Supplier updateSupplier(Integer id, String supplierName, String phone, String address) {
+        Supplier supplier = SupplierRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Nhà cung cấp không tồn tại"));
+        supplier.setSupplierName(supplierName);
+        supplier.setPhone(phone);
+        supplier.setAddress(address);
+        return SupplierRepository.save(supplier);
+    }
+
+    @Override
+    public void deleteSupplier(Integer id) {
+        if (!SupplierRepository.existsById(id)) {
+            throw new IllegalArgumentException("Nhà cung cấp không tồn tại");
+        }
+        SupplierRepository.deleteById(id);
+    }
+
+    @Override
     public Optional<Supplier> findById(Integer id) {
         return SupplierRepository.findById(id);
     }
