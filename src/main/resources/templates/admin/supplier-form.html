@@ -6,6 +6,196 @@
     <title th:text="${isEdit} ? 'Sửa nhà cung cấp' : 'Thêm nhà cung cấp'">Thêm/Sửa</title>
     <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
     <link rel="stylesheet" th:href="@{/css/admin/form.css}">
+    <style>
+        body {
+            background: #0b0f16;
+            color: #e5e7eb;
+        }
+
+        .admin-main,
+        .form-panel {
+            background: #0b0f16;
+        }
+
+        .supplier-form-shell {
+            max-width: 980px;
+            margin: 0 auto;
+        }
+
+        .supplier-form-card {
+            background: #111827;
+            border: 1px solid #273449;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+            padding: 24px;
+        }
+
+        .form-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .form-header h2 {
+            margin: 0;
+            font-size: 28px;
+            color: #f8fafc;
+            line-height: 1.2;
+        }
+
+        .form-header p {
+            margin: 8px 0 0;
+            color: #94a3b8;
+            font-size: 14px;
+        }
+
+        .quick-tip {
+            min-width: 220px;
+            background: linear-gradient(145deg, #152237, #1d2d47);
+            border: 1px solid #31435f;
+            border-radius: 12px;
+            padding: 10px 12px;
+        }
+
+        .quick-tip span {
+            display: block;
+            font-size: 12px;
+            color: #a8b4c8;
+            margin-bottom: 6px;
+        }
+
+        .quick-tip strong {
+            color: #93c5fd;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .alert.error {
+            margin: 0 0 16px;
+            background: #3f1d2e;
+            border: 1px solid #8b3a57;
+            color: #ffd7e6;
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+
+        .supplier-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-group {
+            margin: 0;
+        }
+
+        .form-group.full {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            display: inline-block;
+            margin-bottom: 8px;
+            color: #e2e8f0;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .required {
+            color: #fb7185;
+        }
+
+        .input-wrap {
+            position: relative;
+        }
+
+        .input-wrap .prefix {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 13px;
+            pointer-events: none;
+        }
+
+        .form-group input {
+            width: 100%;
+            background: #0f172a;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 11px 12px;
+            font-size: 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .input-wrap.has-prefix input {
+            padding-left: 40px;
+        }
+
+        .form-group input::placeholder {
+            color: #64748b;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.25);
+        }
+
+        .field-hint {
+            margin-top: 6px;
+            color: #94a3b8;
+            font-size: 12px;
+        }
+
+        .form-actions {
+            grid-column: 1 / -1;
+            margin-top: 8px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .form-actions .btn {
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .form-actions .btn-secondary {
+            background: #243244;
+            color: #e2e8f0;
+        }
+
+        .form-actions .btn-primary {
+            color: #ffffff;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            box-shadow: 0 10px 18px rgba(37, 99, 235, 0.25);
+        }
+
+        @media (max-width: 860px) {
+            .form-header {
+                flex-direction: column;
+            }
+
+            .quick-tip {
+                min-width: 0;
+                width: 100%;
+            }
+
+            .supplier-form {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
 <div class="admin-layout">
@@ -15,32 +205,48 @@
         <header th:replace="~{fragments/header :: managementTopbar(${isEdit} ? 'Sửa nhà cung cấp' : 'Thêm nhà cung cấp')}"></header>
 
         <section class="form-panel">
-            <div class="form-container">
-                <h2 th:text="${isEdit} ? 'Cập nhật nhà cung cấp' : 'Thêm mới nhà cung cấp'"></h2>
-
-                <p class="alert error" th:if="${error}" th:text="${error}"></p>
-
-                <form th:action="${isEdit} ? @{/admin/suppliers/{id}(id=${supplier.supplierId})} : @{/admin/suppliers}" method="post">
-                    <div class="form-group">
-                        <label for="supplierName">Tên nhà cung cấp <span class="required">*</span></label>
-                        <input type="text" id="supplierName" name="supplierName" th:value="${supplier?.supplierName}" required>
+            <div class="supplier-form-shell">
+                <div class="supplier-form-card">
+                    <div class="form-header">
+                        <div>
+                            <h2 th:text="${isEdit} ? 'Cập nhật nhà cung cấp' : 'Thêm mới nhà cung cấp'"></h2>
+                            <p th:text="${isEdit} ? 'Chỉnh sửa thông tin để quản lý nhà cung cấp chính xác hơn.' : 'Điền thông tin để thêm nhà cung cấp mới vào hệ thống.'"></p>
+                        </div>
+                        <div class="quick-tip">
+                            <span>Mẹo nhập nhanh</span>
+                            <strong>Ưu tiên nhập đúng tên và SĐT để tránh trùng dữ liệu.</strong>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="phone">Số điện thoại</label>
-                        <input type="text" id="phone" name="phone" th:value="${supplier?.phone}">
-                    </div>
+                    <p class="alert error" th:if="${error}" th:text="${error}"></p>
 
-                     <div class="form-group">
-                        <label for="address">Địa chỉ</label>
-                        <input type="text" id="address" name="address" th:value="${supplier?.address}">
-                    </div>
+                    <form class="supplier-form" th:action="${isEdit} ? @{/admin/suppliers/{id}(id=${supplier.supplierId})} : @{/admin/suppliers}" method="post">
+                        <div class="form-group full">
+                            <label for="supplierName">Tên nhà cung cấp <span class="required">*</span></label>
+                            <input type="text" id="supplierName" name="supplierName" th:value="${supplier?.supplierName}" placeholder="Ví dụ: Công ty vàng bạc ABC" required>
+                        </div>
 
-                    <div class="form-actions">
-                        <a class="btn btn-secondary" th:href="@{/admin/suppliers}">Hủy</a>
-                        <button class="btn btn-primary" type="submit" th:text="${isEdit} ? 'Cập nhật' : 'Thêm'"></button>
-                    </div>
-                </form>
+                        <div class="form-group">
+                            <label for="phone">Số điện thoại</label>
+                            <div class="input-wrap has-prefix">
+                                <span class="prefix">+84</span>
+                                <input type="text" id="phone" name="phone" th:value="${supplier?.phone}" placeholder="Nhập số điện thoại liên hệ">
+                            </div>
+                            <p class="field-hint">Nên dùng số chính để tiện liên hệ nhập hàng.</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="address">Địa chỉ</label>
+                            <input type="text" id="address" name="address" th:value="${supplier?.address}" placeholder="Ví dụ: 123 Nguyễn Trãi, Quận 1, TP.HCM">
+                            <p class="field-hint">Địa chỉ giúp tra cứu và đối chiếu đơn nhập dễ hơn.</p>
+                        </div>
+
+                        <div class="form-actions">
+                            <a class="btn btn-secondary" th:href="@{/admin/suppliers}">Hủy</a>
+                            <button class="btn btn-primary" type="submit" th:text="${isEdit} ? 'Cập nhật' : 'Thêm nhà cung cấp'"></button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </section>
     </main>

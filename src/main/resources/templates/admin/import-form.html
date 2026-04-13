@@ -7,168 +7,270 @@
     <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}">
     <link rel="stylesheet" th:href="@{/css/admin/form.css}">
     <style>
+        body {
+            background: #0b0f16;
+            color: #e5e7eb;
+        }
+
+        .admin-main,
+        .form-panel {
+            background: #0b0f16;
+        }
+
         .import-form-container {
-            max-width: 1000px;
+            max-width: 1160px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 20px 24px 28px;
+            background: #111827;
+            border: 1px solid #283548;
+            border-radius: 16px;
+            box-shadow: 0 18px 36px rgba(0, 0, 0, 0.35);
         }
-        
-        .supplier-info {
-            background: #f9f9f9;
-            padding: 15px;
-            border-radius: 5px;
+
+        .page-intro {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
             margin-bottom: 20px;
-            border-left: 4px solid #007bff;
         }
-        
-        .supplier-info h4 {
-            margin: 0 0 10px 0;
-            color: #333;
+
+        .page-intro h2 {
+            margin: 0;
+            font-size: 28px;
+            line-height: 1.2;
+            color: #f8fafc;
         }
-        
-        .supplier-info p {
-            margin: 5px 0;
-            color: #666;
+
+        .page-intro p {
+            margin: 8px 0 0;
+            color: #94a3b8;
             font-size: 14px;
         }
-        
+
+        .quick-meta {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            min-width: 260px;
+        }
+
+        .meta-card {
+            background: linear-gradient(145deg, #162032, #1d2a3e);
+            border: 1px solid #31435f;
+            border-radius: 12px;
+            padding: 10px 12px;
+        }
+
+        .meta-card .label {
+            display: block;
+            font-size: 12px;
+            color: #a8b4c8;
+            margin-bottom: 4px;
+        }
+
+        .meta-card .value {
+            font-weight: 700;
+            color: #93c5fd;
+            font-size: 18px;
+        }
+
+        .error-message {
+            background: #3f1d2e;
+            color: #ffd7e6;
+            padding: 12px 14px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            border: 1px solid #8b3a57;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: inline-block;
+            margin-bottom: 8px;
+            color: #e2e8f0;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 14px;
+            color: #e2e8f0;
+            background: #0f172a;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.25);
+        }
+
+        .supplier-info {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+            padding: 14px;
+            border-radius: 12px;
+            background: #0f172a;
+            border: 1px solid #2d3d58;
+        }
+
+        .supplier-info h4 {
+            margin: 0;
+            color: #e2e8f0;
+            grid-column: 1 / -1;
+            font-size: 15px;
+        }
+
+        .supplier-info p {
+            margin: 0;
+            color: #cbd5e1;
+            font-size: 13px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid #2f3f58;
+            border-radius: 12px;
+            background: #0f172a;
+        }
+
         .import-table {
             width: 100%;
+            min-width: 760px;
             border-collapse: collapse;
-            margin-top: 15px;
-            background: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        
+
         .import-table thead {
-            background: #007bff;
-            color: white;
+            background: #1d4ed8;
+            color: #eff6ff;
         }
-        
+
         .import-table th {
-            padding: 12px;
+            padding: 13px 12px;
             text-align: left;
-            font-weight: 600;
+            font-size: 13px;
+            font-weight: 700;
         }
-        
+
         .import-table td {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
+            padding: 10px 12px;
+            border-bottom: 1px solid #243449;
+            background: #0f172a;
+            color: #e2e8f0;
         }
-        
-        .import-table input,
-        .import-table select {
-            width: 100%;
-            padding: 6px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            font-size: 14px;
+
+        .import-table tbody tr:nth-child(even) td {
+            background: #111f31;
         }
-        
-        .import-table input:focus,
-        .import-table select:focus {
-            outline: none;
-            border-color: #007bff;
-            box-shadow: 0 0 3px rgba(0, 123, 255, 0.3);
+
+        .row-no {
+            text-align: center;
+            font-weight: 600;
+            color: #cbd5e1;
+            width: 56px;
         }
-        
-        .btn-remove {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 6px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background 0.3s;
-        }
-        
-        .btn-remove:hover {
-            background: #c82333;
-        }
-        
+
         .btn-add {
-            background: #28a745;
-            color: white;
+            margin-top: 14px;
             border: none;
-            padding: 10px 20px;
-            border-radius: 3px;
-            cursor: pointer;
+            border-radius: 10px;
+            padding: 10px 16px;
             font-size: 14px;
-            margin-top: 15px;
-            transition: background 0.3s;
+            font-weight: 600;
+            cursor: pointer;
+            color: #ffffff;
+            background: linear-gradient(135deg, #16a34a, #15803d);
+            box-shadow: 0 8px 16px rgba(22, 163, 74, 0.2);
         }
-        
-        .btn-add:hover {
-            background: #218838;
+
+        .btn-remove {
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #ffffff;
+            background: #dc2626;
         }
-        
+
+        .summary-box {
+            margin-top: 20px;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid #31435f;
+            background: #0f172a;
+        }
+
+        .summary-box p {
+            margin: 0 0 8px;
+            color: #bfdbfe;
+            font-size: 14px;
+        }
+
+        .summary-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        .summary-box .total-amount {
+            font-size: 20px;
+            font-weight: 700;
+            color: #93c5fd;
+        }
+
         .form-actions {
             display: flex;
             gap: 10px;
-            margin-top: 25px;
+            margin-top: 24px;
             justify-content: flex-end;
         }
-        
+
         .form-actions .btn {
-            padding: 10px 30px;
             border: none;
-            border-radius: 3px;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.3s;
-        }
-        
-        .form-actions .btn-primary {
-            background: #007bff;
-            color: white;
-        }
-        
-        .form-actions .btn-primary:hover {
-            background: #0056b3;
-        }
-        
-        .form-actions .btn-secondary {
-            background: #6c757d;
-            color: white;
             text-decoration: none;
-            display: inline-block;
-            text-align: center;
         }
-        
-        .form-actions .btn-secondary:hover {
-            background: #5a6268;
+
+        .form-actions .btn-secondary {
+            background: #243244;
+            color: #e2e8f0;
         }
-        
-        .error-message {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 12px;
-            border-radius: 3px;
-            margin-bottom: 20px;
-            border-left: 4px solid #f5c6cb;
+
+        .form-actions .btn-primary {
+            color: #ffffff;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
         }
-        
-        .total-info {
-            background: #e7f3ff;
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 20px;
-            border-left: 4px solid #007bff;
-        }
-        
-        .total-info p {
-            margin: 5px 0;
-            color: #004085;
-            font-size: 14px;
-        }
-        
-        .total-info .total-amount {
-            font-size: 18px;
-            font-weight: bold;
-            color: #007bff;
-            margin-top: 10px;
+
+        @media (max-width: 900px) {
+            .page-intro {
+                flex-direction: column;
+            }
+
+            .quick-meta {
+                width: 100%;
+                min-width: 0;
+            }
+
+            .supplier-info {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -181,7 +283,22 @@
 
         <section class="form-panel">
             <div class="import-form-container">
-                <h2>Lập phiếu nhập kho</h2>
+                <div class="page-intro">
+                    <div>
+                        <h2>Lập phiếu nhập kho</h2>
+                        <p>Nhập thông tin nhà cung cấp và danh sách sản phẩm để tạo phiếu nhập nhanh, chính xác.</p>
+                    </div>
+                    <div class="quick-meta">
+                        <div class="meta-card">
+                            <span class="label">Số dòng sản phẩm</span>
+                            <span id="totalRows" class="value">1</span>
+                        </div>
+                        <div class="meta-card">
+                            <span class="label">Tổng chi phí tạm tính</span>
+                            <span id="totalCostAmount" class="value">0 VND</span>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="error-message" th:if="${error}" th:text="${error}"></div>
 
@@ -190,7 +307,12 @@
                         <label for="supplierId"><strong>Nhà cung cấp <span style="color: red;">*</span></strong></label>
                         <select name="supplierId" id="supplierId" required onchange="updateSupplierInfo()">
                             <option value="" disabled selected>-- Chọn nhà cung cấp --</option>
-                            <option th:each="sup : ${suppliers}" th:value="${sup.supplierId}" th:text="${sup.supplierName}"></option>
+                            <option
+                                th:each="sup : ${suppliers}"
+                                th:value="${sup.supplierId}"
+                                th:text="${sup.supplierName}"
+                                th:attr="data-phone=${sup.phone},data-address=${sup.address}">
+                            </option>
                         </select>
                     </div>
 
@@ -203,41 +325,45 @@
 
                     <div class="form-group">
                         <label><strong>Danh sách sản phẩm nhập <span style="color: red;">*</span></strong></label>
-                        <table class="import-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 40%;">Sản phẩm (Mã - Tên)</th>
-                                    <th style="width: 20%; text-align: center;">Số lượng</th>
-                                    <th style="width: 25%; text-align: center;">Giá nhập (VND)</th>
-                                    <th style="width: 15%; text-align: center;">Bỏ</th>
-                                </tr>
-                            </thead>
-                            <tbody id="importRows">
-                                <tr>
-                                    <td>
-                                        <select name="productIds" class="product-select" required>
-                                            <option value="" disabled selected>Chọn sản phẩm</option>
-                                            <option th:each="prod : ${products}" th:value="${prod.productId}" th:text="${prod.productCode + ' - ' + prod.productName}"></option>
-                                        </select>
-                                    </td>
-                                    <td style="text-align: center;">
-                                        <input type="number" name="quantities" class="quantity-input" min="1" value="1" required>
-                                    </td>
-                                    <td style="text-align: center;">
-                                        <input type="number" name="importPrices" class="price-input" min="0" step="0.01" value="0" required>
-                                    </td>
-                                    <td style="text-align: center;">
-                                        <button type="button" class="btn-remove" onclick="removeRow(this)">Xóa</button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="table-wrap">
+                            <table class="import-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 8%; text-align: center;">STT</th>
+                                        <th style="width: 42%;">Sản phẩm (Mã - Tên)</th>
+                                        <th style="width: 20%; text-align: center;">Số lượng</th>
+                                        <th style="width: 20%; text-align: center;">Giá nhập (VND)</th>
+                                        <th style="width: 10%; text-align: center;">Bỏ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="importRows">
+                                    <tr>
+                                        <td class="row-no">1</td>
+                                        <td>
+                                            <select name="productIds" class="product-select" required>
+                                                <option value="" disabled selected>Chọn sản phẩm</option>
+                                                <option th:each="prod : ${products}" th:value="${prod.productId}" th:text="${prod.productCode + ' - ' + prod.productName}"></option>
+                                            </select>
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <input type="number" name="quantities" class="quantity-input" min="1" value="1" required>
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <input type="number" name="importPrices" class="price-input" min="0" step="0.01" value="0" required>
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <button type="button" class="btn-remove" onclick="removeRow(this)">Xóa</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                         <button type="button" class="btn-add" onclick="addRow()">+ Thêm dòng sản phẩm</button>
                     </div>
 
-                    <div class="total-info">
-                        <p><strong>Tổng số dòng sản phẩm:</strong> <span id="totalRows">1</span></p>
-                        <p id="totalCostDisplay" style="display: none;"><strong>Tổng chi phí nhập:</strong> <span id="totalCostAmount" class="total-amount">0 VND</span></p>
+                    <div class="summary-box">
+                        <p><strong>Tổng số dòng sản phẩm:</strong> <span id="summaryRows">1</span></p>
+                        <p id="totalCostDisplay"><strong>Tổng chi phí nhập:</strong> <span id="summaryTotalCost" class="total-amount">0 VND</span></p>
                     </div>
 
                     <div class="form-actions">
@@ -279,7 +405,9 @@
                 if (option.value) {
                     suppliersList.push({
                         supplierId: parseInt(option.value),
-                        supplierName: option.textContent
+                        supplierName: option.textContent,
+                        phone: option.getAttribute('data-phone') || '',
+                        address: option.getAttribute('data-address') || ''
                     });
                 }
             }
@@ -297,12 +425,13 @@
         }
         selectHtml += '</select>';
 
-        tr.innerHTML = '<td>' + selectHtml + '</td>' +
+        tr.innerHTML = '<td class="row-no"></td>' +
+                       '<td>' + selectHtml + '</td>' +
                        '<td style="text-align: center;"><input type="number" name="quantities" class="quantity-input" min="1" value="1" required></td>' +
                        '<td style="text-align: center;"><input type="number" name="importPrices" class="price-input" min="0" step="0.01" value="0" required></td>' +
                        '<td style="text-align: center;"><button type="button" class="btn-remove" onclick="removeRow(this)">Xóa</button></td>';
         tbody.appendChild(tr);
-        
+        refreshRowNumbers();
         updateTotalRows();
         updateTotalCost();
     }
@@ -312,6 +441,7 @@
         var tbody = tr.parentNode;
         if (tbody.children.length > 1) {
             tbody.removeChild(tr);
+            refreshRowNumbers();
             updateTotalRows();
             updateTotalCost();
         } else {
@@ -322,6 +452,17 @@
     function updateTotalRows() {
         var tbody = document.getElementById('importRows');
         document.getElementById('totalRows').textContent = tbody.children.length;
+        document.getElementById('summaryRows').textContent = tbody.children.length;
+    }
+
+    function refreshRowNumbers() {
+        var tbody = document.getElementById('importRows');
+        for (var i = 0; i < tbody.children.length; i++) {
+            var rowNoCell = tbody.children[i].querySelector('.row-no');
+            if (rowNoCell) {
+                rowNoCell.textContent = i + 1;
+            }
+        }
     }
 
     function updateTotalCost() {
@@ -329,17 +470,14 @@
         var total = 0;
         for (var i = 0; i < tbody.children.length; i++) {
             var row = tbody.children[i];
-            var qty = parseFloat(row.cells[1].querySelector('input').value) || 0;
-            var price = parseFloat(row.cells[2].querySelector('input').value) || 0;
+            var qty = parseFloat(row.cells[2].querySelector('input').value) || 0;
+            var price = parseFloat(row.cells[3].querySelector('input').value) || 0;
             total += qty * price;
         }
-        
-        if (total > 0) {
-            document.getElementById('totalCostDisplay').style.display = 'block';
-            document.getElementById('totalCostAmount').textContent = total.toLocaleString('vi-VN') + ' VND';
-        } else {
-            document.getElementById('totalCostDisplay').style.display = 'none';
-        }
+
+        var formattedTotal = total.toLocaleString('vi-VN') + ' VND';
+        document.getElementById('totalCostAmount').textContent = formattedTotal;
+        document.getElementById('summaryTotalCost').textContent = formattedTotal;
     }
 
     function updateSupplierInfo() {
@@ -379,7 +517,7 @@
         
         for (var i = 0; i < tbody.children.length; i++) {
             var row = tbody.children[i];
-            var productId = row.cells[0].querySelector('select').value;
+            var productId = row.cells[1].querySelector('select').value;
             
             if (!productId) {
                 alert("Vui lòng chọn sản phẩm ở tất cả các dòng.");
@@ -391,8 +529,8 @@
             }
             selectedProducts.add(productId);
             
-            var qty = parseFloat(row.cells[1].querySelector('input').value);
-            var price = parseFloat(row.cells[2].querySelector('input').value);
+            var qty = parseFloat(row.cells[2].querySelector('input').value);
+            var price = parseFloat(row.cells[3].querySelector('input').value);
             
             if (qty < 1) {
                 alert("Số lượng phải lớn hơn hoặc bằng 1.");
@@ -415,7 +553,9 @@
     // Cập nhật tổng chi phí khi nhập số lượng hoặc giá
     document.addEventListener('DOMContentLoaded', function() {
         initializeData();
+        refreshRowNumbers();
         updateTotalRows();
+        updateTotalCost();
         
         document.addEventListener('change', function(e) {
             if (e.target.classList.contains('quantity-input') || e.target.classList.contains('price-input')) {
