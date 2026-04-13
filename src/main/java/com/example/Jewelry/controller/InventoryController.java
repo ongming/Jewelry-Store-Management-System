@@ -60,7 +60,7 @@ public class InventoryController {
         return "admin/import-form";
     }
 
-    @GetMapping("/staff/inventory/import-form")
+    @GetMapping({"/staff/inventory/import-form", "/staff/inventory/import/new"})
     public String staffImportForm(Model model) {
         model.addAttribute("products", productService.findAll());
         model.addAttribute("suppliers", supplierService.findAll());
