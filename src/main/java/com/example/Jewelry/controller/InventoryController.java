@@ -55,15 +55,27 @@ public class InventoryController {
 
     @GetMapping("/admin/inventory/import/new")
     public String adminImportForm(Model model) {
-        model.addAttribute("products", productService.findAll());
-        model.addAttribute("suppliers", supplierService.findAll());
+        try {
+            model.addAttribute("products", productService.findAll());
+            model.addAttribute("suppliers", supplierService.findAll());
+        } catch (Exception e) {
+            model.addAttribute("products", List.of());
+            model.addAttribute("suppliers", List.of());
+            model.addAttribute("error", "Lỗi khi tải dữ liệu: " + e.getMessage());
+        }
         return "admin/import-form";
     }
 
     @GetMapping({"/staff/inventory/import-form", "/staff/inventory/import/new"})
     public String staffImportForm(Model model) {
-        model.addAttribute("products", productService.findAll());
-        model.addAttribute("suppliers", supplierService.findAll());
+        try {
+            model.addAttribute("products", productService.findAll());
+            model.addAttribute("suppliers", supplierService.findAll());
+        } catch (Exception e) {
+            model.addAttribute("products", List.of());
+            model.addAttribute("suppliers", List.of());
+            model.addAttribute("error", "Lỗi khi tải dữ liệu: " + e.getMessage());
+        }
         return "staff/import-form";
     }
 
