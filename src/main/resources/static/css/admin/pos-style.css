@@ -643,6 +643,11 @@
     color: #ffd5d5;
 }
 
+.toast.warning {
+    border-color: rgba(255, 193, 7, 0.5);
+    color: #ffe7a8;
+}
+
 @media (max-width: 1240px) {
     .pos-workspace {
         grid-template-columns: 1fr;

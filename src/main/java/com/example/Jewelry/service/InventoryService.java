@@ -16,6 +16,9 @@ public interface InventoryService {
 
     void importStock(Integer supplierId, Integer staffAccountId, List<Integer> productIds, List<Integer> quantities, List<BigDecimal> importPrices);
 
+
+    void deductStockForSale(Integer productId, int quantity, Integer staffAccountId, Integer orderId);
+
     List<Inventory> findAll();
 
     Inventory save(Inventory entity);

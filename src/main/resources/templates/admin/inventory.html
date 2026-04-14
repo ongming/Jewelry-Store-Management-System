@@ -19,6 +19,21 @@
                 </div>
                 <p class="alert success" th:if="${success}" th:text="${success}"></p>
                 <p class="alert error" th:if="${error}" th:text="${error}"></p>
+
+                <!-- [OBSERVER PATTERN] Hiển thị cảnh báo tồn kho thấp từ LowStockAlertListener -->
+                <div th:if="${lowStockAlerts != null and !lowStockAlerts.isEmpty()}"
+                     style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                    <h3 style="color: #856404; margin: 0 0 12px 0; font-size: 16px;">
+                        ⚠️ Cảnh báo từ Observer - Tồn kho thấp (<span th:text="${lowStockAlerts.size()}"></span> cảnh báo)
+                    </h3>
+                    <div th:each="alert : ${lowStockAlerts}"
+                         style="background: #fff8e1; padding: 10px 14px; margin-bottom: 6px; border-radius: 6px; border-left: 4px solid #ff9800; font-size: 14px;">
+                        <span th:text="${alert.message}"></span>
+                        <span style="color: #999; font-size: 12px; margin-left: 8px;"
+                              th:text="${alert.formattedTime}"></span>
+                    </div>
+                </div>
+
                 <table>
                     <thead>
                         <tr>
@@ -27,6 +42,7 @@
                             <th>Mã</th>
                             <th>Tên sản phẩm</th>
                             <th>Tồn kho</th>
+                            <th>Trạng thái</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -40,6 +56,21 @@
                             <td th:text="${product.productCode}"></td>
                             <td th:text="${product.productName}"></td>
                             <td th:text="${product.inventory != null ? product.inventory.quantityStock : 0}"></td>
+                            <td>
+                                <!-- Hiển thị trạng thái tồn kho -->
+                                <span th:if="${product.inventory == null or product.inventory.quantityStock == 0}"
+                                      style="background: #dc3545; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                                    Hết hàng
+                                </span>
+                                <span th:if="${product.inventory != null and product.inventory.quantityStock > 0 and product.inventory.quantityStock < lowStockThreshold}"
+                                      style="background: #ff9800; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                                    ⚠ Tồn kho thấp
+                                </span>
+                                <span th:if="${product.inventory != null and product.inventory.quantityStock >= lowStockThreshold}"
+                                      style="background: #28a745; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                                    Đủ hàng
+                                </span>
+                            </td>
                         </tr>
                     </tbody>
                 </table>

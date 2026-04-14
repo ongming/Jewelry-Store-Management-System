@@ -1,0 +1,195 @@
+ĐỀ CƯƠNG THUYẾT TRÌNH: OBSERVER PATTERN TRONG QUẢN LÝ KHO
+Dự án: Jewelry Store Management System
+
+====================================================================
+0) MỤC TIÊU BUỔI THUYẾT TRÌNH (10-12 PHÚT)
+====================================================================
+Sau phần trình bày, người nghe nắm được:
+1) Bài toán trước khi áp dụng Observer.
+2) Mapping Subject - Event - Observer vào code thật.
+3) Luồng nhập kho/bán hàng sau refactor.
+4) Giá trị thực tế: cảnh báo tồn thấp, audit, mở rộng dễ.
+5) Hạn chế hiện tại và hướng nâng cấp.
+
+Câu mở đầu gợi ý:
+"Em áp dụng Observer pattern để tách cập nhật tồn kho khỏi các xử lý phụ như cảnh báo tồn thấp và audit log, giúp code dễ mở rộng và ít ảnh hưởng luồng chính."
+
+====================================================================
+1) KỊCH BẢN NÓI THEO THỜI GIAN
+====================================================================
+- Phần A (1-2 phút): Bài toán trước refactor.
+- Phần B (2 phút): Vì sao chọn Observer.
+- Phần C (4-5 phút): Kiến trúc mới + đường đi dữ liệu + mapping file.
+- Phần D (2 phút): Demo thực tế (nhập kho, checkout, low-stock).
+- Phần E (1 phút): Hạn chế + hướng phát triển.
+
+====================================================================
+2) BÀI TOÁN TRƯỚC KHI ÁP DỤNG
+====================================================================
+Hiện trạng cũ (điển hình trong nhiều dự án):
+- Service kho vừa cập nhật tồn, vừa xử lý cảnh báo, vừa ghi lịch sử.
+- Khi thêm yêu cầu mới, thường chèn thêm if-else trực tiếp vào service.
+
+Vấn đề:
+- Coupling cao: service chính biết quá nhiều việc.
+- Khó mở rộng: thêm tính năng phụ là sửa code lõi.
+- Rủi ro regression tăng.
+
+Câu chốt nên nói:
+"Mình cần cơ chế để service chỉ lo thay đổi tồn kho; phần còn lại tự chạy theo sự kiện."
+
+====================================================================
+3) VÌ SAO OBSERVER PHÙ HỢP
+====================================================================
+Định nghĩa ngắn:
+- Một thành phần phát sự kiện (Publisher/Subject).
+- Nhiều thành phần lắng nghe sự kiện (Observer/Listener) và xử lý độc lập.
+
+Lý do phù hợp với kho:
+1) Mỗi lần tồn kho đổi là một điểm kích hoạt tự nhiên cho side effect.
+2) Có thể thêm listener mới mà không sửa nghiệp vụ lõi.
+3) Dễ bảo trì hơn khi số tính năng phụ tăng.
+
+====================================================================
+4) MAPPING CHÍNH XÁC VÀO CODE DỰ ÁN
+====================================================================
+4.1 Subject (Publisher)
+- `src/main/java/com/example/Jewelry/service/impl/InventoryServiceImpl.java`
+- Vai trò:
+  + Cập nhật tồn kho.
+  + Publish `InventoryStockChangedEvent` sau mỗi biến động tồn.
+
+Các điểm publish chính:
+- `addStock(...)`
+- `importStock(...)`
+- `deductStockForSale(...)`
+
+4.2 Event
+- `src/main/java/com/example/Jewelry/event/InventoryStockChangedEvent.java`
+- Dữ liệu chính:
+  + `productId`, `oldQuantity`, `delta`, `newQuantity`
+  + `changeType`, `actorAccountId`
+  + `referenceType`, `referenceId`, `occurredAt`
+
+4.3 Enum chuẩn hóa
+- `src/main/java/com/example/Jewelry/event/InventoryChangeType.java`
+- `src/main/java/com/example/Jewelry/event/InventoryReferenceType.java`
+- Ý nghĩa: type-safe, tránh sai chính tả khi dùng String.
+
+4.4 Observer (Listener) hiện có
+- `src/main/java/com/example/Jewelry/listener/LowStockAlertListener.java`
+  + Nhận event, kiểm tra ngưỡng tồn thấp, đẩy cảnh báo vào `LowStockAlertService`.
+- `src/main/java/com/example/Jewelry/listener/InventoryAuditListener.java`
+  + Nhận event, ghi audit log biến động kho.
+
+Lưu ý quan trọng:
+- Hiện tại có 2 listener đăng ký trực tiếp cho `InventoryStockChangedEvent`.
+
+4.5 Transaction semantics
+- Listener dùng `@TransactionalEventListener(phase = AFTER_COMMIT)`.
+- Nghĩa là listener chỉ chạy khi transaction chính commit thành công.
+- Lợi ích: tránh cảnh báo/audit cho dữ liệu đã rollback.
+
+====================================================================
+5) LUỒNG NGHIỆP VỤ SAU KHI ÁP DỤNG
+====================================================================
+5.1 Luồng nhập kho
+1) Controller nhận request nhập.
+2) Gọi `InventoryServiceImpl.addStock(...)` hoặc `importStock(...)`.
+3) Service cập nhật tồn và publish event.
+4) Sau commit:
+   - `LowStockAlertListener` xử lý ngưỡng tồn thấp.
+   - `InventoryAuditListener` ghi lịch sử biến động.
+
+5.2 Luồng bán hàng / hoàn tất đơn
+1) Checkout gọi `deductStockForSale(...)`.
+2) Service trừ tồn, chặn tồn âm.
+3) Service publish event với `changeType = SALE`.
+4) Sau commit, listener tự xử lý như trên.
+5) `OrderController` lấy dữ liệu từ `LowStockAlertService` để hiển thị:
+   - Panel cảnh báo tồn thấp trên trang staff.
+   - Toast nhỏ sau khi nhân viên hoàn tất đơn nếu tồn kho xuống thấp.
+
+Câu mô tả đẹp:
+"Một event kho thay đổi đi qua cùng một pipeline; cảnh báo và audit là các nhánh độc lập."
+
+====================================================================
+6) ĐIỂM ĐÃ LÀM ĐƯỢC RÕ RÀNG
+====================================================================
+- Tách nghiệp vụ cốt lõi và side effect.
+- Dễ thêm tính năng phụ mới theo hướng listener.
+- Có cảnh báo low-stock phục vụ vận hành ngay tại màn hình bán hàng.
+- Có audit log để theo dõi biến động.
+
+====================================================================
+7) HẠN CHẾ HIỆN TẠI (NÊN NÓI TRUNG THỰC)
+====================================================================
+1) Listener hiện thiên về log/in-memory, chưa đầy đủ persistent history chuẩn DB.
+2) Ngưỡng low-stock còn hard-code tại một số vị trí.
+3) Chưa có bộ integration test mạnh cho các case rollback/event.
+4) Chưa có trang timeline audit chuyên sâu cho quản trị.
+
+====================================================================
+8) HƯỚNG NÂNG CẤP TIẾP
+====================================================================
+- Lưu audit/alert vào DB để truy vấn dài hạn.
+- Đồng bộ threshold về một nguồn cấu hình chung (`application.properties` hoặc bảng config).
+- Thêm integration test cho:
+  + import success
+  + sale success
+  + rollback case (listener không chạy)
+- Có thể mở rộng listener mới: notification/email/realtime dashboard.
+
+====================================================================
+9) KỊCH BẢN DEMO 3-5 PHÚT
+====================================================================
+Bước demo đề xuất:
+1) Chuẩn bị một sản phẩm có tồn gần ngưỡng.
+2) Thực hiện checkout để tồn giảm dưới ngưỡng.
+3) Chỉ ra:
+   - Tồn kho đã đổi đúng.
+   - Có log `[INVENTORY_AUDIT]` trong console.
+   - Có cảnh báo low-stock và toast nhỏ ở UI staff/orders.
+4) Nhấn mạnh: không cần chèn thêm logic cảnh báo vào service lõi.
+
+====================================================================
+10) CÂU HỎI PHẢN BIỆN THƯỜNG GẶP
+====================================================================
+Q1: Tại sao không gọi trực tiếp hàm cảnh báo trong service?
+A1: Làm vậy coupling tăng, mở rộng khó. Observer giữ service lõi gọn và ổn định.
+
+Q2: Listener lỗi có làm hỏng transaction chính không?
+A2: Listener đang chạy AFTER_COMMIT, nên nghiệp vụ chính đã commit trước.
+
+Q3: Muốn thêm chức năng mới thì sửa đâu?
+A3: Thêm listener mới nghe `InventoryStockChangedEvent`, không cần sửa mạnh service lõi.
+
+Q4: Có quá nhiều listener thì sao?
+A4: Có chi phí xử lý, nhưng đổi lại kiến trúc sạch hơn; có thể tối ưu async/queue nếu tải cao.
+
+Q5: Bằng chứng áp dụng pattern nằm ở đâu?
+A5: Xem trực tiếp các file:
+- `src/main/java/com/example/Jewelry/service/impl/InventoryServiceImpl.java`
+- `src/main/java/com/example/Jewelry/event/InventoryStockChangedEvent.java`
+- `src/main/java/com/example/Jewelry/listener/LowStockAlertListener.java`
+- `src/main/java/com/example/Jewelry/listener/InventoryAuditListener.java`
+- `src/main/java/com/example/Jewelry/controller/OrderController.java`
+
+====================================================================
+11) KẾT LUẬN NÊN CHỐT
+====================================================================
+- Đã áp dụng Observer đúng ngữ cảnh kho.
+- Đã tách rõ nghiệp vụ cốt lõi và nghiệp vụ phụ.
+- Đã chứng minh hiệu quả qua luồng checkout có low-stock toast + audit.
+
+Câu kết gợi ý:
+"Giá trị lớn nhất không chỉ là chạy được, mà là kiến trúc đủ sạch để mở rộng tính năng mới với rủi ro thấp."
+
+====================================================================
+12) CHECKLIST TRƯỚC KHI THUYẾT TRÌNH
+====================================================================
+[ ] Nhớ đúng 3 khối: Subject - Event - Observer.
+[ ] Nói rõ khác biệt trước/sau refactor.
+[ ] Demo được ít nhất 1 ca checkout làm tụt tồn dưới ngưỡng.
+[ ] Trả lời được 2 câu phản biện chính (Q1, Q2).
+[ ] Chốt thông điệp: giảm coupling, dễ mở rộng, dễ bảo trì.

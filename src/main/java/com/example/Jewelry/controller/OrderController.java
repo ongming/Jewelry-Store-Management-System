@@ -12,6 +12,7 @@ import com.example.Jewelry.payment.strategy.PaymentExecutionResult;
 import com.example.Jewelry.payment.strategy.MomoVnpayPaymentStrategy;
 import com.example.Jewelry.service.CustomerService;
 import com.example.Jewelry.service.InventoryService;
+import com.example.Jewelry.service.LowStockAlertService;
 import com.example.Jewelry.service.OrderService;
 import com.example.Jewelry.service.PaymentService;
 import com.example.Jewelry.service.ProductService;
@@ -57,6 +58,7 @@ public class OrderController {
     private final StaffService staffService;
     private final InventoryService inventoryService;
     private final VoucherService voucherService;
+    private final LowStockAlertService lowStockAlertService;
     private final ObjectMapper objectMapper;
 
     public OrderController(ProductService productService,
@@ -66,6 +68,7 @@ public class OrderController {
                            StaffService staffService,
                            InventoryService inventoryService,
                            VoucherService voucherService,
+                           LowStockAlertService lowStockAlertService,
                            ObjectMapper objectMapper) {
         this.productService = productService;
         this.customerService = customerService;
@@ -74,6 +77,7 @@ public class OrderController {
         this.staffService = staffService;
         this.inventoryService = inventoryService;
         this.voucherService = voucherService;
+        this.lowStockAlertService = lowStockAlertService;
         this.objectMapper = objectMapper;
     }
 
@@ -86,6 +90,17 @@ public class OrderController {
             .toList());
         model.addAttribute("lowStockThreshold", LOW_STOCK_THRESHOLD);
         model.addAttribute("staffOrderViews", buildStaffOrderViews(session));
+
+        // Observer alerts panel (always visible on page).
+        List<LowStockAlertService.AlertMessage> lowStockAlerts = lowStockAlertService.getAlerts();
+        model.addAttribute("lowStockAlerts", lowStockAlerts);
+
+        // One-time toast payload after checkout success.
+        if (Boolean.TRUE.equals(model.asMap().get("showLowStockToast"))) {
+            int beforeCount = parseAlertCount(model.asMap().get("lowStockAlertCountBefore"));
+            List<LowStockAlertService.AlertMessage> checkoutAlerts = collectNewLowStockAlerts(lowStockAlerts, beforeCount, 3);
+            model.addAttribute("checkoutLowStockAlerts", checkoutAlerts);
+        }
         return "staff/orders";
     }
 
@@ -127,6 +142,7 @@ public class OrderController {
         boolean checkoutNow = "checkout".equalsIgnoreCase(orderAction);
         boolean pendingPaymentMethod = checkoutNow && isPendingPaymentMethod(paymentMethod);
         boolean shouldCaptureImmediately = checkoutNow && !pendingPaymentMethod;
+        int lowStockAlertCountBefore = shouldCaptureImmediately ? lowStockAlertService.getAlerts().size() : -1;
         List<PendingOrderLine> pendingLines = new ArrayList<>();
         BigDecimal computedTotal = BigDecimal.ZERO;
 
@@ -189,9 +205,14 @@ public class OrderController {
             detail.setUnitPrice(line.unitPrice());
             order.getOrderDetails().add(detail);
 
-            if (shouldCaptureImmediately && line.inventory() != null) {
-                line.inventory().updateStock(line.inventory().getQuantityStock() - line.quantity());
-                inventoryService.save(line.inventory());
+            // [OBSERVER] Gọi deductStockForSale để Observer pattern phát event
+            if (shouldCaptureImmediately) {
+                inventoryService.deductStockForSale(
+                    line.product().getProductId(),
+                    line.quantity(),
+                    staff.getAccountId(),
+                    null  // orderId chưa có vì chưa save
+                );
             }
         }
 
@@ -233,6 +254,11 @@ public class OrderController {
             }
         } else {
             redirectAttributes.addFlashAttribute("success", "Đã lưu đơn chờ thanh toán: " + savedOrder.getOrderNumber());
+        }
+
+        if (shouldCaptureImmediately) {
+            redirectAttributes.addFlashAttribute("showLowStockToast", true);
+            redirectAttributes.addFlashAttribute("lowStockAlertCountBefore", lowStockAlertCountBefore);
         }
         return "redirect:/staff/orders";
     }
@@ -323,6 +349,7 @@ public class OrderController {
         }
 
         boolean pendingPaymentMethod = isPendingPaymentMethod(paymentMethod);
+        int lowStockAlertCountBefore = !pendingPaymentMethod ? lowStockAlertService.getAlerts().size() : -1;
         BigDecimal subtotal = BigDecimal.ZERO;
         for (OrderDetail detail : order.getOrderDetails()) {
             Product product = detail.getProduct();
@@ -334,9 +361,14 @@ public class OrderController {
                 );
                 return "redirect:/staff/orders";
             }
-            if (!pendingPaymentMethod && inventory != null) {
-                inventory.updateStock(inventory.getQuantityStock() - detail.getQuantity());
-                inventoryService.save(inventory);
+            // [OBSERVER] Gọi deductStockForSale để Observer pattern phát event
+            if (!pendingPaymentMethod) {
+                inventoryService.deductStockForSale(
+                    product.getProductId(),
+                    detail.getQuantity(),
+                    accountId,
+                    orderId
+                );
             }
 
             BigDecimal unitPrice = detail.getUnitPrice() == null ? BigDecimal.ZERO : detail.getUnitPrice();
@@ -378,6 +410,11 @@ public class OrderController {
                     + " bằng " + displayPaymentMethod(paymentMethod)
                     + " - " + formatCurrency(order.getFinalTotal())
             );
+        }
+
+        if (!pendingPaymentMethod) {
+            redirectAttributes.addFlashAttribute("showLowStockToast", true);
+            redirectAttributes.addFlashAttribute("lowStockAlertCountBefore", lowStockAlertCountBefore);
         }
         return "redirect:/staff/orders";
     }
@@ -509,29 +546,29 @@ public class OrderController {
         try {
             Order order = orderService.findById(orderId).orElse(null);
             if (order == null) {
-                redirectAttributes.addFlashAttribute("error", "Không tìm thấy đơn hàng.");
+                redirectAttributes.addFlashAttribute("error", "Khong tim thay don hang.");
                 return "redirect:/staff/orders";
             }
 
             Integer accountId = (Integer) session.getAttribute("accountId");
             String roleName = (String) session.getAttribute("roleName");
             if (!canManageOrder(order, accountId, roleName)) {
-                redirectAttributes.addFlashAttribute("error", "Bạn không có quyền thao tác đơn hàng này.");
+                redirectAttributes.addFlashAttribute("error", "Ban khong co quyen thao tac don hang nay.");
                 return "redirect:/staff/orders";
             }
 
             if (voucherCode == null || voucherCode.isBlank()) {
-                redirectAttributes.addFlashAttribute("error", "Vui lòng nhập mã voucher.");
+                redirectAttributes.addFlashAttribute("error", "Vui long nhap ma voucher.");
                 return "redirect:/staff/orders";
             }
 
             Voucher voucher = voucherService.findByCode(voucherCode).orElse(null);
             if (voucher == null) {
-                redirectAttributes.addFlashAttribute("error", "Mã voucher không hợp lệ hoặc không tồn tại.");
+                redirectAttributes.addFlashAttribute("error", "Ma voucher khong hop le hoac khong ton tai.");
                 return "redirect:/staff/orders";
             }
             if (!isVoucherActive(voucher)) {
-                redirectAttributes.addFlashAttribute("error", "Voucher chưa đến thời gian áp dụng hoặc đã hết hạn.");
+                redirectAttributes.addFlashAttribute("error", "Voucher chua den thoi gian ap dung hoac da het han.");
                 return "redirect:/staff/orders";
             }
 
@@ -542,15 +579,18 @@ public class OrderController {
             if (newTotal.compareTo(BigDecimal.ZERO) < 0) {
                 newTotal = BigDecimal.ZERO;
             }
+
             order.setFinalTotal(newTotal);
             orderService.save(order);
 
-            redirectAttributes.addFlashAttribute("success", 
-                "Áp dụng voucher thành công! Giảm: " + formatCurrency(discountValue) + 
-                " | Tổng tiền sau giảm: " + formatCurrency(newTotal));
+            String successMessage = "Ap dung voucher thanh cong! Giam: "
+                + formatCurrency(discountValue)
+                + " | Tong tien sau giam: "
+                + formatCurrency(newTotal);
+            redirectAttributes.addFlashAttribute("success", successMessage);
             return "redirect:/staff/orders";
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Lỗi áp dụng voucher: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Loi ap dung voucher: " + e.getMessage());
             return "redirect:/staff/orders";
         }
     }
@@ -563,23 +603,25 @@ public class OrderController {
         try {
             Order order = orderService.findById(orderId).orElse(null);
             if (order == null) {
-                redirectAttributes.addFlashAttribute("error", "Không tìm thấy đơn hàng.");
+                redirectAttributes.addFlashAttribute("error", "Khong tim thay don hang.");
                 return "redirect:/staff/orders";
             }
 
             Integer accountId = (Integer) session.getAttribute("accountId");
             String roleName = (String) session.getAttribute("roleName");
             if (!canManageOrder(order, accountId, roleName)) {
-                redirectAttributes.addFlashAttribute("error", "Bạn không có quyền thao tác đơn hàng này.");
+                redirectAttributes.addFlashAttribute("error", "Ban khong co quyen thao tac don hang nay.");
                 return "redirect:/staff/orders";
             }
 
             if (order.getVoucher() == null) {
-                redirectAttributes.addFlashAttribute("error", "Đơn hàng này không có voucher được áp dụng.");
+                redirectAttributes.addFlashAttribute("error", "Don hang nay khong co voucher duoc ap dung.");
                 return "redirect:/staff/orders";
             }
 
-            BigDecimal discountValue = order.getVoucher().getDiscountValue() == null ? BigDecimal.ZERO : order.getVoucher().getDiscountValue();
+            BigDecimal discountValue = order.getVoucher().getDiscountValue() == null
+                ? BigDecimal.ZERO
+                : order.getVoucher().getDiscountValue();
             BigDecimal currentTotal = order.getFinalTotal() == null ? BigDecimal.ZERO : order.getFinalTotal();
             BigDecimal originalTotal = currentTotal.add(discountValue);
 
@@ -587,11 +629,13 @@ public class OrderController {
             order.setFinalTotal(originalTotal);
             orderService.save(order);
 
-            redirectAttributes.addFlashAttribute("success", 
-                "Hủy voucher thành công! Tổng tiền trở lại: " + formatCurrency(originalTotal));
+            redirectAttributes.addFlashAttribute(
+                "success",
+                "Huy voucher thanh cong! Tong tien tro lai: " + formatCurrency(originalTotal)
+            );
             return "redirect:/staff/orders";
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Lỗi hủy voucher: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Loi huy voucher: " + e.getMessage());
             return "redirect:/staff/orders";
         }
     }
@@ -681,6 +725,30 @@ public class OrderController {
         BigDecimal discountedTotal = baseTotal.subtract(discount);
         return discountedTotal.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : discountedTotal;
     }
+
+    private int parseAlertCount(Object rawValue) {
+        if (rawValue instanceof Number number) {
+            return Math.max(0, number.intValue());
+        }
+        return 0;
+    }
+
+    private List<LowStockAlertService.AlertMessage> collectNewLowStockAlerts(
+        List<LowStockAlertService.AlertMessage> alerts,
+        int beforeCount,
+        int maxItems
+    ) {
+        if (alerts == null || alerts.isEmpty() || maxItems <= 0) {
+            return List.of();
+        }
+        int safeBefore = Math.max(0, beforeCount);
+        int newCount = Math.max(0, alerts.size() - safeBefore);
+        if (newCount == 0) {
+            return List.of();
+        }
+        return alerts.stream().limit(Math.min(newCount, maxItems)).toList();
+    }
+
 
     public record StaffProductView(Integer productId,
                                    String productCode,

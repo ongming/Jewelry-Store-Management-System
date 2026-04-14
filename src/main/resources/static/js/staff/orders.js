@@ -39,7 +39,8 @@
         modalVoucherList: document.getElementById("modalVoucherList"),
         appliedVoucherCodeInput: document.getElementById("appliedVoucherCodeInput"),
         appliedVoucherCodeLabel: document.getElementById("appliedVoucherCodeLabel"),
-        toastStack: document.getElementById("toastStack")
+        toastStack: document.getElementById("toastStack"),
+        checkoutLowStockToastPayload: document.getElementById("checkoutLowStockToastPayload")
     };
 
     if (!refs.orderForm) {
@@ -63,9 +64,11 @@
             .replaceAll("'", "&#39;");
     }
 
-    function toast(message, isError = false) {
+    function toast(message, isError = false, variant = "") {
         const item = document.createElement("div");
-        item.className = "toast" + (isError ? " error" : "");
+        item.className = "toast"
+            + (isError ? " error" : "")
+            + (variant ? " " + variant : "");
         item.textContent = message;
         refs.toastStack.appendChild(item);
 
@@ -74,6 +77,24 @@
             item.classList.remove("show");
             setTimeout(() => item.remove(), 250);
         }, 2400);
+    }
+
+    function showCheckoutLowStockToasts() {
+        if (!refs.checkoutLowStockToastPayload) {
+            return;
+        }
+        const toastItems = Array.from(
+            refs.checkoutLowStockToastPayload.querySelectorAll(".low-stock-toast-item[data-message]")
+        );
+        toastItems.slice(0, 3).forEach((node, index) => {
+            const message = (node.dataset.message || "").trim();
+            if (!message) {
+                return;
+            }
+            setTimeout(() => {
+                toast("Canh bao ton kho: " + message, false, "warning");
+            }, index * 260);
+        });
     }
 
     function currentCartTotal() {
@@ -714,4 +735,5 @@
     buildCategoryPills();
     applyFilter();
     renderCart();
-})();
+    showCheckoutLowStockToasts();
+ })();

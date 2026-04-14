@@ -1,0 +1,31 @@
+
+
+5. Vị trí áp dụng Observer pattern trong dự án
+----------------------------------------------
+Observer pattern được áp dụng chủ yếu trong nghiệp vụ quản lý tồn kho, theo cơ chế event-driven giữa service chính và các listener xử lý phụ:
+
+- Điểm phát sinh sự kiện (Publisher):
+  + `InventoryServiceImpl` phát `InventoryStockChangedEvent` mỗi khi tồn kho thay đổi ở các luồng:
+    * Nhập kho đơn lẻ (`addStock`)
+    * Nhập kho theo lô (`importStock`)
+    * Trừ kho khi bán hàng (`deductStockForSale`)
+
+- Đối tượng sự kiện (Event):
+  + `InventoryStockChangedEvent` chứa đầy đủ ngữ cảnh: sản phẩm, số lượng trước/sau, delta, loại biến động, người thao tác, chứng từ tham chiếu, thời điểm.
+  + Enum hỗ trợ phân loại:
+    * `InventoryChangeType` (IMPORT, SALE, ...)
+    * `InventoryReferenceType` (ORDER, IMPORT_RECEIPT, ...)
+
+- Các Observer (Listener) đang được đăng ký:
+  + `LowStockAlertListener`:
+    * Lắng nghe sự kiện sau khi transaction commit (`@TransactionalEventListener(phase = AFTER_COMMIT)`)
+    * Khi tồn kho mới < ngưỡng, tạo cảnh báo tồn thấp thông qua `LowStockAlertService`.
+  + `InventoryAuditListener`:
+    * Lắng nghe cùng sự kiện sau commit
+    * Ghi log lịch sử biến động kho (audit).
+
+- Điểm sử dụng kết quả Observer ở giao diện:
+  + `InventoryController` và `OrderController` lấy dữ liệu từ `LowStockAlertService` để hiển thị cảnh báo tồn thấp.
+  + Trang `staff/orders` hiển thị thông báo cảnh báo nhỏ (toast) ngay sau thao tác hoàn tất đơn hàng nếu tồn kho sản phẩm xuống dưới ngưỡng.
+
+=> Kết quả: luồng nghiệp vụ chính (nhập/xuất kho) được tách biệt khỏi các xử lý phụ (cảnh báo, audit), giúp hệ thống dễ mở rộng, dễ bảo trì và giảm phụ thuộc chéo giữa các thành phần.

@@ -1,0 +1,917 @@
+====================================================================
+KẾ HOẠCH CHI TIẾT ÁP DỤNG OBSERVER PATTERN VÀO QUẢN LÝ KHO
+Jewelry Store Management System
+====================================================================
+
+MỤC LỤC:
+  PHẦN A - NHƯỢC ĐIỂM HIỆN TẠI (KHI CHƯA CÓ OBSERVER PATTERN)
+  PHẦN B - TỔNG QUAN CÁC FILE CẦN TẠO MỚI / CHỈNH SỬA
+  PHẦN C - CHI TIẾT TỪNG FILE: CODE + CHÚ THÍCH TẠI SAO
+  PHẦN D - TÓM TẮT LUỒNG MỚI SAU KHI ÁP DỤNG
+
+====================================================================
+PHẦN A - NHƯỢC ĐIỂM HIỆN TẠI (KHI CHƯA CÓ OBSERVER PATTERN)
+====================================================================
+
+NHƯỢC ĐIỂM 1: COUPLING CAO - PHỤ THUỘC CHẶT GIỮA CÁC THÀNH PHẦN
+----------------------------------------------------------------------
+- Hiện tại InventoryServiceImpl vừa làm 3 việc cùng lúc:
+  (1) Cập nhật tồn kho
+  (2) Tạo chứng từ nhập (ImportReceipt, ImportDetail)
+  (3) Tính toán tổng tiền
+- Nếu muốn thêm tính năng mới (ví dụ: cảnh báo tồn kho thấp, ghi lịch sử
+  biến động, gửi email thông báo), phải sửa TRỰC TIẾP vào class này.
+- Sửa 1 chỗ ➜ dễ gây lỗi dây chuyền ở các chỗ khác trong cùng class.
+
+NHƯỢC ĐIỂM 2: LOGIC TỒN KHO BỊ PHÂN TÁN Ở NHIỀU NƠI
+----------------------------------------------------------------------
+- Nhập kho: logic nằm trong InventoryServiceImpl (addStock, importStock)
+- Trừ tồn khi bán: logic nằm trong InventoryServiceImpl (deductStockForSale)
+  NHƯNG được gọi từ OrderController
+- Nếu sau này có thêm luồng khác thay đổi tồn kho (trả hàng, điều chỉnh thủ
+  công...), sẽ phải nhớ thêm logic ở MỖI CHỖ gọi ➜ dễ bỏ sót.
+
+NHƯỢC ĐIỂM 3: KHÔNG CÓ CƠ CHẾ MỞ RỘNG
+----------------------------------------------------------------------
+- Hiện tại KHÔNG CÓ cách nào để các tính năng phụ trợ "đăng ký nghe" khi tồn
+  kho thay đổi. Nếu muốn:
+  + Cảnh báo tồn kho thấp ➜ phải thêm if/else vào service
+  + Ghi audit log ➜ phải thêm code vào service
+  + Cập nhật dashboard ➜ phải thêm code vào service
+  ➜ Service ngày càng phình to, khó bảo trì.
+
+OBSERVER PATTERN GIẢI QUYẾT ĐƯỢC GÌ?
+----------------------------------------------------------------------
+- Tách "xử lý cốt lõi" (cập nhật tồn kho) khỏi "xử lý phụ trợ"
+  (cảnh báo, log, thống kê).
+- Khi tồn kho thay đổi, service chỉ cần "phát sự kiện" 1 LẦN.
+- Các listener (người nghe) độc lập nhận sự kiện và xử lý riêng.
+- Muốn thêm tính năng mới? ➜ Chỉ cần tạo thêm 1 listener MỚI,
+  KHÔNG CẦN SỬA service cũ.
+
+====================================================================
+PHẦN B - TỔNG QUAN CÁC FILE CẦN TẠO MỚI / CHỈNH SỬA
+====================================================================
+
+DANH SÁCH FILE TẠO MỚI (5 file):
+----------------------------------------------------------------------
+1. src/main/java/com/example/Jewelry/event/InventoryChangeType.java       [MỚI]
+   ➜ Enum định nghĩa loại biến động kho: IMPORT, SALE, ADJUSTMENT, RETURN
+
+2. src/main/java/com/example/Jewelry/event/InventoryReferenceType.java    [MỚI]
+   ➜ Enum định nghĩa nguồn chứng từ: IMPORT_RECEIPT, ORDER, MANUAL, SYSTEM
+
+3. src/main/java/com/example/Jewelry/event/InventoryStockChangedEvent.java [MỚI]
+   ➜ Event object chứa dữ liệu sự kiện tồn kho thay đổi
+
+4. src/main/java/com/example/Jewelry/listener/LowStockAlertListener.java  [MỚI]
+   ➜ Listener cảnh báo khi tồn kho xuống thấp hơn ngưỡng
+
+5. src/main/java/com/example/Jewelry/listener/InventoryAuditListener.java [MỚI]
+   ➜ Listener ghi lịch sử biến động tồn kho
+
+DANH SÁCH FILE CHỈNH SỬA (1 file):
+----------------------------------------------------------------------
+6. src/main/java/com/example/Jewelry/service/impl/InventoryServiceImpl.java [SỬA]
+   ➜ Thêm publisher: phát sự kiện sau mỗi lần cập nhật tồn kho
+
+LƯU Ý QUAN TRỌNG:
+- KHÔNG sửa InventoryController.java ➜ endpoint giữ nguyên
+- KHÔNG sửa InventoryService.java (interface) ➜ hợp đồng API giữ nguyên
+- KHÔNG sửa OrderController.java ➜ luồng bán hàng giữ nguyên
+- Frontend KHÔNG CẦN sửa gì
+
+
+====================================================================
+PHẦN C - CHI TIẾT TỪNG FILE: CODE + CHÚ THÍCH TẠI SAO
+====================================================================
+
+----------------------------------------------------------------------
+FILE 1: InventoryChangeType.java [TẠO MỚI]
+Đường dẫn: src/main/java/com/example/Jewelry/event/InventoryChangeType.java
+----------------------------------------------------------------------
+
+TẠI SAO CẦN FILE NÀY?
+- Hiện tại nếu muốn phân biệt loại biến động kho, phải dùng String
+  (ví dụ: "IMPORT", "SALE"...) ➜ dễ viết sai chính tả, không có gợi ý từ IDE.
+- Dùng enum ➜ IDE gợi ý, compiler bắt lỗi lúc biên dịch, an toàn hơn String.
+
+KHẮC PHỤC NHƯỢC ĐIỂM:
+- Nhược điểm 1 (coupling): mỗi listener có thể xử lý theo changeType riêng mà
+  không cần if/else phức tạp trong service chính.
+
+CODE MỚI:
+--------------------------------------------------
+package com.example.Jewelry.event;
+
+/**
+ * Enum định nghĩa các loại biến động tồn kho.
+ *
+ * Tại sao dùng enum thay vì String?
+ * - String dễ viết sai chính tả (ví dụ "IMOPRT" thay vì "IMPORT")
+ *   mà compiler không bắt được lỗi.
+ * - Enum được compiler kiểm tra lúc biên dịch, IDE gợi ý tự động.
+ * - Dễ mở rộng: thêm giá trị mới chỉ cần thêm 1 dòng.
+ */
+public enum InventoryChangeType {
+    IMPORT,      // Nhập kho từ nhà cung cấp
+    SALE,        // Trừ kho do bán hàng
+    ADJUSTMENT,  // Điều chỉnh thủ công (kiểm kê)
+    RETURN       // Trả hàng/hoàn kho
+}
+--------------------------------------------------
+
+
+----------------------------------------------------------------------
+FILE 2: InventoryReferenceType.java [TẠO MỚI]
+Đường dẫn: src/main/java/com/example/Jewelry/event/InventoryReferenceType.java
+----------------------------------------------------------------------
+
+TẠI SAO CẦN FILE NÀY?
+- Khi ghi lại sự kiện biến động kho, cần biết nguồn gốc (chứng từ nào gây ra).
+- Ví dụ: biến động do phiếu nhập kho hay do đơn hàng?
+- Dùng enum type-safe thay vì String.
+
+KHẮC PHỤC NHƯỢC ĐIỂM:
+- Nhược điểm 2 (phân tán): mọi loại biến động đều được chuẩn hóa cùng kiểu
+  referenceType, dù phát từ luồng nào (nhập/bán/trả).
+
+CODE MỚI:
+--------------------------------------------------
+package com.example.Jewelry.event;
+
+/**
+ * Enum xác định loại chứng từ gây ra biến động tồn kho.
+ *
+ * Tại sao cần enum này?
+ * - Khi listener nhận event, cần biết biến động này từ đâu:
+ *   + Từ phiếu nhập kho? ➜ IMPORT_RECEIPT
+ *   + Từ đơn hàng bán?   ➜ ORDER
+ *   + Điều chỉnh tay?    ➜ MANUAL_ADJUSTMENT
+ *   + Hệ thống tự động?  ➜ SYSTEM
+ * - Nhờ đó audit log có thể trỏ đúng tới chứng từ gốc.
+ */
+public enum InventoryReferenceType {
+    IMPORT_RECEIPT,      // Phiếu nhập kho
+    ORDER,               // Đơn hàng bán
+    MANUAL_ADJUSTMENT,   // Điều chỉnh thủ công
+    SYSTEM               // Hệ thống tự xử lý
+}
+--------------------------------------------------
+
+
+----------------------------------------------------------------------
+FILE 3: InventoryStockChangedEvent.java [TẠO MỚI]
+Đường dẫn: src/main/java/com/example/Jewelry/event/InventoryStockChangedEvent.java
+----------------------------------------------------------------------
+
+TẠI SAO CẦN FILE NÀY?
+- Đây là "event object" - đối tượng mang dữ liệu mô tả sự kiện vừa xảy ra.
+- Là cầu nối giữa "publisher" (service phát sự kiện) và "listener" (người nghe).
+- Không có event object ➜ không có Observer pattern.
+
+KHẮC PHỤC NHƯỢC ĐIỂM:
+- Nhược điểm 3 (không mở rộng được): event chuẩn hóa giúp BẤT KỲ listener nào
+  cũng có thể đăng ký nhận và xử lý, không cần biết ai phát.
+
+CODE MỚI:
+--------------------------------------------------
+package com.example.Jewelry.event;
+
+import java.time.LocalDateTime;
+
+/**
+ * Event object mô tả sự kiện "tồn kho vừa thay đổi".
+ *
+ * Tại sao dùng class thay vì truyền tham số rời?
+ * - Gom tất cả thông tin liên quan vào 1 đối tượng ➜ dễ truyền giữa các tầng.
+ * - Listener nhận được ĐẦY ĐỦ ngữ cảnh để xử lý (ai thay đổi, thay đổi bao nhiêu,
+ *   từ chứng từ nào, khi nào).
+ * - Thêm field mới không ảnh hưởng signature của listener.
+ *
+ * Giải thích các field:
+ * - productId:       ID sản phẩm bị thay đổi tồn kho
+ * - oldQuantity:     số lượng tồn TRƯỚC khi thay đổi
+ * - delta:           độ chênh lệch (dương = nhập, âm = xuất)
+ * - newQuantity:     số lượng tồn SAU khi thay đổi
+ * - changeType:      loại biến động (IMPORT, SALE, ADJUSTMENT, RETURN)
+ * - actorAccountId:  tài khoản thực hiện thao tác
+ * - referenceType:   loại chứng từ nguồn (IMPORT_RECEIPT, ORDER...)
+ * - referenceId:     ID chứng từ nguồn
+ * - occurredAt:      thời điểm xảy ra
+ */
+public class InventoryStockChangedEvent {
+
+    private final Integer productId;
+    private final int oldQuantity;
+    private final int delta;
+    private final int newQuantity;
+    private final InventoryChangeType changeType;
+    private final Integer actorAccountId;
+    private final InventoryReferenceType referenceType;
+    private final Integer referenceId;
+    private final LocalDateTime occurredAt;
+
+    public InventoryStockChangedEvent(Integer productId,
+                                       int oldQuantity,
+                                       int delta,
+                                       int newQuantity,
+                                       InventoryChangeType changeType,
+                                       Integer actorAccountId,
+                                       InventoryReferenceType referenceType,
+                                       Integer referenceId,
+                                       LocalDateTime occurredAt) {
+        this.productId = productId;
+        this.oldQuantity = oldQuantity;
+        this.delta = delta;
+        this.newQuantity = newQuantity;
+        this.changeType = changeType;
+        this.actorAccountId = actorAccountId;
+        this.referenceType = referenceType;
+        this.referenceId = referenceId;
+        this.occurredAt = occurredAt;
+    }
+
+    // --- Getter methods ---
+    public Integer getProductId()                    { return productId; }
+    public int getOldQuantity()                      { return oldQuantity; }
+    public int getDelta()                            { return delta; }
+    public int getNewQuantity()                      { return newQuantity; }
+    public InventoryChangeType getChangeType()       { return changeType; }
+    public Integer getActorAccountId()               { return actorAccountId; }
+    public InventoryReferenceType getReferenceType() { return referenceType; }
+    public Integer getReferenceId()                  { return referenceId; }
+    public LocalDateTime getOccurredAt()             { return occurredAt; }
+
+    // --- Helper methods ---
+    /** Tồn kho tăng (nhập kho, trả hàng) */
+    public boolean isIncrease() { return delta > 0; }
+
+    /** Tồn kho giảm (bán hàng, điều chỉnh giảm) */
+    public boolean isDecrease() { return delta < 0; }
+}
+--------------------------------------------------
+
+
+----------------------------------------------------------------------
+FILE 4: LowStockAlertListener.java [TẠO MỚI]
+Đường dẫn: src/main/java/com/example/Jewelry/listener/LowStockAlertListener.java
+----------------------------------------------------------------------
+
+TẠI SAO CẦN FILE NÀY?
+- Hiện tại KHÔNG CÓ cơ chế cảnh báo khi tồn kho xuống thấp.
+- Nếu không có Observer, phải thêm if/else kiểm tra tồn kho thấp vào:
+  + addStock() trong InventoryServiceImpl
+  + importStock() trong InventoryServiceImpl
+  + deductStockForSale() trong InventoryServiceImpl
+  ➜ Copy-paste 3 lần cùng một logic ➜ vi phạm nguyên tắc DRY (Don't Repeat Yourself)
+
+KHẮC PHỤC NHƯỢC ĐIỂM:
+- Nhược điểm 1 (coupling): listener TÁCH BIỆT khỏi service, service không biết
+  có listener nào đang nghe.
+- Nhược điểm 3 (không mở rộng): thêm cảnh báo mà KHÔNG SỬA service chính.
+
+CODE MỚI:
+--------------------------------------------------
+package com.example.Jewelry.listener;
+
+import com.example.Jewelry.event.InventoryStockChangedEvent;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
+
+/**
+ * Observer (Listener) #1: Cảnh báo tồn kho thấp.
+ *
+ * Tại sao dùng @TransactionalEventListener(phase = AFTER_COMMIT)?
+ * - AFTER_COMMIT nghĩa là listener CHỈ CHẠY SAU KHI transaction đã commit
+ *   thành công xuống database.
+ * - Nếu transaction bị rollback (lỗi) ➜ listener KHÔNG CHẠY ➜ không cảnh báo
+ *   nhầm cho dữ liệu chưa thực sự thay đổi.
+ *
+ * Tại sao tách thành class riêng?
+ * - Service chính (InventoryServiceImpl) không cần biết có cảnh báo hay không.
+ * - Muốn tắt cảnh báo? ➜ Xóa hoặc comment @Component, service vẫn chạy bình thường.
+ * - Muốn đổi ngưỡng cảnh báo? ➜ Chỉ sửa file này, không ảnh hưởng service.
+ */
+@Component
+public class LowStockAlertListener {
+
+    // Ngưỡng cảnh báo tồn kho thấp (có thể đưa ra config sau này)
+    private static final int LOW_STOCK_THRESHOLD = 5;
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handle(InventoryStockChangedEvent event) {
+        // Chỉ cảnh báo khi tồn kho mới thấp hơn ngưỡng
+        if (event.getNewQuantity() < LOW_STOCK_THRESHOLD) {
+            System.out.println(
+                "[LOW_STOCK] CẢNH BÁO: Sản phẩm ID=" + event.getProductId()
+                + " tồn kho còn " + event.getNewQuantity()
+                + " (ngưỡng=" + LOW_STOCK_THRESHOLD + ")"
+                + " | Loại biến động: " + event.getChangeType()
+                + " | Người thao tác: " + event.getActorAccountId()
+            );
+            // TODO tương lai: lưu vào bảng cảnh báo, gửi email/notification
+        }
+    }
+}
+--------------------------------------------------
+
+
+----------------------------------------------------------------------
+FILE 5: InventoryAuditListener.java [TẠO MỚI]
+Đường dẫn: src/main/java/com/example/Jewelry/listener/InventoryAuditListener.java
+----------------------------------------------------------------------
+
+TẠI SAO CẦN FILE NÀY?
+- Hiện tại KHÔNG CÓ lịch sử biến động tồn kho (ai thay đổi, khi nào, bao nhiêu).
+- Nếu không có Observer, phải thêm code ghi log vào TỪNG method thay đổi kho
+  trong InventoryServiceImpl ➜ code service phình to, khó đọc.
+
+KHẮC PHỤC NHƯỢC ĐIỂM:
+- Nhược điểm 1 (coupling): audit log TÁCH BIỆT khỏi nghiệp vụ tồn kho.
+- Nhược điểm 2 (phân tán): DÙ tồn kho thay đổi từ luồng nào (nhập/bán/trả),
+  audit log đều được ghi qua CÙNG MỘT listener duy nhất.
+- Nhược điểm 3 (không mở rộng): thêm audit mà KHÔNG SỬA service chính.
+
+CODE MỚI:
+--------------------------------------------------
+package com.example.Jewelry.listener;
+
+import com.example.Jewelry.event.InventoryStockChangedEvent;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
+
+/**
+ * Observer (Listener) #2: Ghi lịch sử biến động tồn kho (audit log).
+ *
+ * Tại sao cần audit log?
+ * - Truy vết: biết AI đã thay đổi tồn kho, KHI NÀO, thay đổi BAO NHIÊU.
+ * - Đối soát: so sánh tồn kho thực tế với lịch sử biến động.
+ * - Bảo mật: phát hiện thao tác bất thường.
+ *
+ * Tại sao dùng @TransactionalEventListener(phase = AFTER_COMMIT)?
+ * - Đảm bảo chỉ ghi audit khi dữ liệu tồn kho ĐÃ THỰC SỰ thay đổi
+ *   trong database (transaction commit thành công).
+ */
+@Component
+public class InventoryAuditListener {
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handle(InventoryStockChangedEvent event) {
+        System.out.println(
+            "[INVENTORY_AUDIT]"
+            + " productId=" + event.getProductId()
+            + " | " + event.getOldQuantity() + " -> " + event.getNewQuantity()
+            + " (delta=" + event.getDelta() + ")"
+            + " | type=" + event.getChangeType()
+            + " | ref=" + event.getReferenceType() + "#" + event.getReferenceId()
+            + " | actor=" + event.getActorAccountId()
+            + " | at=" + event.getOccurredAt()
+        );
+        // TODO tương lai: lưu vào bảng inventory_audit trong database
+    }
+}
+--------------------------------------------------
+
+
+----------------------------------------------------------------------
+FILE 6: InventoryServiceImpl.java [CHỈNH SỬA]
+Đường dẫn: src/main/java/com/example/Jewelry/service/impl/InventoryServiceImpl.java
+----------------------------------------------------------------------
+
+TẠI SAO CẦN SỬA FILE NÀY?
+- Đây là "Subject/Publisher" trong Observer pattern ➜ nơi phát sự kiện.
+- Cần thêm ApplicationEventPublisher để phát event sau mỗi lần cập nhật tồn kho.
+- Gom logic cập nhật tồn kho về method applyStockDelta() để TẬP TRUNG 1 CHỖ.
+
+KHẮC PHỤC NHƯỢC ĐIỂM:
+- Nhược điểm 1 (coupling): service chỉ "phát sự kiện", KHÔNG CẦN BIẾT ai nghe.
+- Nhược điểm 2 (phân tán): MỌI thay đổi tồn kho đều đi qua applyStockDelta()
+  ➜ 1 điểm duy nhất phát event ➜ không bỏ sót.
+- Nhược điểm 3 (không mở rộng): thêm bao nhiêu listener tùy ý, service
+  không cần sửa thêm dòng nào.
+
+===== SO SÁNH TRƯỚC VÀ SAU =====
+
+--- [A] THAY ĐỔI 1: THÊM IMPORT VÀ INJECT ApplicationEventPublisher ---
+
+TRƯỚC (dòng 1-45 của file hiện tại):
+--------------------------------------------------
+package com.example.Jewelry.service.impl;
+
+import com.example.Jewelry.model.entity.ImportDetail;
+import com.example.Jewelry.model.entity.ImportReceipt;
+import com.example.Jewelry.model.entity.Inventory;
+import com.example.Jewelry.model.entity.Staff;
+import com.example.Jewelry.model.entity.Supplier;
+import com.example.Jewelry.repository.ImportDetailRepository;
+import com.example.Jewelry.repository.ImportReceiptRepository;
+import com.example.Jewelry.repository.InventoryRepository;
+import com.example.Jewelry.repository.ProductRepository;
+import com.example.Jewelry.repository.StaffRepository;
+import com.example.Jewelry.repository.SupplierRepository;
+import com.example.Jewelry.service.InventoryService;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class InventoryServiceImpl implements InventoryService {
+
+    private final InventoryRepository inventoryRepository;
+    private final ImportReceiptRepository importReceiptRepository;
+    private final ImportDetailRepository importDetailRepository;
+    private final SupplierRepository supplierRepository;
+    private final StaffRepository staffRepository;
+    private final ProductRepository productRepository;
+
+    public InventoryServiceImpl(InventoryRepository inventoryRepository,
+                                ImportReceiptRepository importReceiptRepository,
+                                ImportDetailRepository importDetailRepository,
+                                SupplierRepository supplierRepository,
+                                StaffRepository staffRepository,
+                                ProductRepository productRepository) {
+        this.inventoryRepository = inventoryRepository;
+        this.importReceiptRepository = importReceiptRepository;
+        this.importDetailRepository = importDetailRepository;
+        this.supplierRepository = supplierRepository;
+        this.staffRepository = staffRepository;
+        this.productRepository = productRepository;
+    }
+--------------------------------------------------
+
+SAU (thêm import event + inject publisher):
+--------------------------------------------------
+package com.example.Jewelry.service.impl;
+
+import com.example.Jewelry.event.InventoryChangeType;           // [MỚI] enum loại biến động
+import com.example.Jewelry.event.InventoryReferenceType;        // [MỚI] enum loại chứng từ
+import com.example.Jewelry.event.InventoryStockChangedEvent;    // [MỚI] event object
+import com.example.Jewelry.model.entity.ImportDetail;
+import com.example.Jewelry.model.entity.ImportReceipt;
+import com.example.Jewelry.model.entity.Inventory;
+import com.example.Jewelry.model.entity.Product;
+import com.example.Jewelry.model.entity.Staff;
+import com.example.Jewelry.model.entity.Supplier;
+import com.example.Jewelry.repository.ImportDetailRepository;
+import com.example.Jewelry.repository.ImportReceiptRepository;
+import com.example.Jewelry.repository.InventoryRepository;
+import com.example.Jewelry.repository.ProductRepository;
+import com.example.Jewelry.repository.StaffRepository;
+import com.example.Jewelry.repository.SupplierRepository;
+import com.example.Jewelry.service.InventoryService;
+import org.springframework.context.ApplicationEventPublisher;   // [MỚI] Spring event publisher
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class InventoryServiceImpl implements InventoryService {
+
+    private final InventoryRepository inventoryRepository;
+    private final ImportReceiptRepository importReceiptRepository;
+    private final ImportDetailRepository importDetailRepository;
+    private final SupplierRepository supplierRepository;
+    private final StaffRepository staffRepository;
+    private final ProductRepository productRepository;
+    private final ApplicationEventPublisher eventPublisher;     // [MỚI] publisher phát sự kiện
+
+    // [SỬA] Constructor thêm tham số eventPublisher
+    // Tại sao? Spring tự động inject ApplicationEventPublisher vào đây (Dependency Injection).
+    // Service không cần biết có bao nhiêu listener đang nghe ➜ giảm coupling.
+    public InventoryServiceImpl(InventoryRepository inventoryRepository,
+                                ImportReceiptRepository importReceiptRepository,
+                                ImportDetailRepository importDetailRepository,
+                                SupplierRepository supplierRepository,
+                                StaffRepository staffRepository,
+                                ProductRepository productRepository,
+                                ApplicationEventPublisher eventPublisher) {
+        this.inventoryRepository = inventoryRepository;
+        this.importReceiptRepository = importReceiptRepository;
+        this.importDetailRepository = importDetailRepository;
+        this.supplierRepository = supplierRepository;
+        this.staffRepository = staffRepository;
+        this.productRepository = productRepository;
+        this.eventPublisher = eventPublisher;                   // [MỚI]
+    }
+--------------------------------------------------
+
+TẠI SAO LÀM VẬY?
+- ApplicationEventPublisher là cơ chế sẵn có của Spring Framework.
+- Không cần thêm thư viện/dependency mới.
+- Spring tự inject vào constructor ➜ service có khả năng phát sự kiện.
+- Service KHÔNG biết ai đang nghe ➜ hoàn toàn DECOUPLED (tách rời).
+
+
+--- [B] THAY ĐỔI 2: THÊM 2 METHOD MỚI (applyStockDelta + publishStockChanged) ---
+
+VỊ TRÍ: Thêm vào cuối class, trước dấu } đóng class.
+
+CODE MỚI THÊM VÀO:
+--------------------------------------------------
+    // ====================================================================
+    // [MỚI] OBSERVER PATTERN: Hai phương thức cốt lõi
+    // ====================================================================
+
+    /**
+     * Gom logic cập nhật tồn kho về MỘT CHỖ duy nhất.
+     *
+     * Tại sao cần method này?
+     * TRƯỚC: logic cập nhật tồn kho bị lặp lại ở addStock(), importStock(),
+     *        deductStockForSale() ➜ cùng pattern "tìm inventory → cộng/trừ → save"
+     *        nhưng viết 3 lần khác nhau.
+     * SAU:   tất cả gọi applyStockDelta() ➜ 1 chỗ duy nhất xử lý,
+     *        dễ kiểm tra, dễ debug.
+     *
+     * @param product  sản phẩm cần cập nhật tồn kho
+     * @param delta    độ chênh lệch (dương = tăng, âm = giảm)
+     * @return Inventory sau khi cập nhật
+     */
+    private Inventory applyStockDelta(Product product, int delta) {
+        Optional<Inventory> optionalInventory =
+            inventoryRepository.findByProductProductId(product.getProductId());
+
+        Inventory inventory;
+        if (optionalInventory.isPresent()) {
+            inventory = optionalInventory.get();
+        } else {
+            // Chưa có bản ghi tồn kho ➜ tạo mới (trường hợp nhập kho lần đầu)
+            inventory = new Inventory();
+            inventory.setProduct(product);
+            inventory.setQuantityStock(0);
+        }
+
+        int oldQty = inventory.getQuantityStock();
+        int newQty = oldQty + delta;
+
+        // Kiểm tra không cho tồn kho âm (trường hợp bán nhiều hơn tồn)
+        if (newQty < 0) {
+            throw new IllegalArgumentException(
+                "Không đủ tồn kho cho sản phẩm ID " + product.getProductId()
+                + ". Hiện có " + oldQty + ", cần trừ " + Math.abs(delta) + "."
+            );
+        }
+
+        inventory.setQuantityStock(newQty);
+        return inventoryRepository.save(inventory);
+    }
+
+    /**
+     * Phát sự kiện tồn kho thay đổi cho tất cả listener đang đăng ký nghe.
+     *
+     * Tại sao cần method này?
+     * - Đây là TRÁI TIM của Observer pattern trong service.
+     * - Sau khi cập nhật tồn kho thành công, gọi method này 1 lần.
+     * - Spring sẽ tự động gửi event tới TẤT CẢ listener đã đăng ký
+     *   (LowStockAlertListener, InventoryAuditListener, và bất kỳ listener
+     *   nào được thêm trong tương lai).
+     * - Service KHÔNG CẦN BIẾT có bao nhiêu listener, xử lý gì.
+     *
+     * Khắc phục nhược điểm nào?
+     * - Nhược điểm 1: service không cần import/gọi trực tiếp listener.
+     * - Nhược điểm 3: thêm listener mới ➜ chỉ tạo class listener mới,
+     *   KHÔNG sửa service.
+     */
+    private void publishStockChanged(Integer productId,
+                                     int oldQty,
+                                     int delta,
+                                     int newQty,
+                                     InventoryChangeType changeType,
+                                     Integer actorAccountId,
+                                     InventoryReferenceType referenceType,
+                                     Integer referenceId) {
+        eventPublisher.publishEvent(
+            new InventoryStockChangedEvent(
+                productId,
+                oldQty,
+                delta,
+                newQty,
+                changeType,
+                actorAccountId,
+                referenceType,
+                referenceId,
+                LocalDateTime.now()
+            )
+        );
+    }
+--------------------------------------------------
+
+
+--- [C] THAY ĐỔI 3: SỬA METHOD addStock() ĐỂ PHÁT EVENT ---
+
+TRƯỚC (code hiện tại, dòng 52-92):
+--------------------------------------------------
+    @Override
+    @Transactional
+    public void addStock(Integer productId, int quantity, Integer supplierId,
+                         BigDecimal importPrice, Integer staffAccountId) {
+        Optional<Inventory> optionalInventory = inventoryRepository.findByProductProductId(productId);
+        com.example.Jewelry.model.entity.Product product = productRepository.findById(productId)
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm."));
+
+        if (optionalInventory.isPresent()) {
+            Inventory inventory = optionalInventory.get();
+            inventory.setQuantityStock(inventory.getQuantityStock() + quantity);
+            inventoryRepository.save(inventory);
+        } else {
+            Inventory inventory = new Inventory();
+            inventory.setProduct(product);
+            inventory.setQuantityStock(quantity);
+            inventoryRepository.save(inventory);
+        }
+
+        Supplier supplier = supplierRepository.findById(supplierId)
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy nhà cung cấp."));
+
+        Staff staff = staffRepository.findById(staffAccountId)
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin nhân viên nhập hàng."));
+
+        ImportReceipt receipt = new ImportReceipt();
+        receipt.setImportDate(LocalDateTime.now());
+        receipt.setSupplier(supplier);
+        receipt.setStaff(staff);
+
+        BigDecimal totalCost = importPrice.multiply(BigDecimal.valueOf(quantity));
+        receipt.setTotalCost(totalCost);
+
+        ImportReceipt savedReceipt = importReceiptRepository.save(receipt);
+
+        ImportDetail detail = new ImportDetail();
+        detail.setImportReceipt(savedReceipt);
+        detail.setProduct(product);
+        detail.setQuantity(quantity);
+        detail.setImportPrice(importPrice);
+        importDetailRepository.save(detail);
+    }
+--------------------------------------------------
+
+SAU (thay thế logic tồn kho bằng applyStockDelta + thêm publishStockChanged):
+--------------------------------------------------
+    @Override
+    @Transactional
+    public void addStock(Integer productId, int quantity, Integer supplierId,
+                         BigDecimal importPrice, Integer staffAccountId) {
+        Product product = productRepository.findById(productId)
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm."));
+
+        // [SỬA] Gom logic cập nhật tồn kho về applyStockDelta()
+        // TRƯỚC: copy-paste logic tìm inventory/cộng số/save ở đây
+        // SAU:   gọi 1 method chung, giảm trùng lặp code
+        int oldQty = inventoryRepository.findByProductProductId(productId)
+            .map(Inventory::getQuantityStock).orElse(0);
+        Inventory savedInventory = applyStockDelta(product, quantity);
+
+        Supplier supplier = supplierRepository.findById(supplierId)
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy nhà cung cấp."));
+
+        Staff staff = staffRepository.findById(staffAccountId)
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin nhân viên nhập hàng."));
+
+        ImportReceipt receipt = new ImportReceipt();
+        receipt.setImportDate(LocalDateTime.now());
+        receipt.setSupplier(supplier);
+        receipt.setStaff(staff);
+
+        BigDecimal totalCost = importPrice.multiply(BigDecimal.valueOf(quantity));
+        receipt.setTotalCost(totalCost);
+
+        ImportReceipt savedReceipt = importReceiptRepository.save(receipt);
+
+        ImportDetail detail = new ImportDetail();
+        detail.setImportReceipt(savedReceipt);
+        detail.setProduct(product);
+        detail.setQuantity(quantity);
+        detail.setImportPrice(importPrice);
+        importDetailRepository.save(detail);
+
+        // [MỚI] Phát sự kiện Observer: tồn kho vừa thay đổi do NHẬP KHO
+        // Tại sao đặt ở cuối method?
+        // - Đảm bảo TẤT CẢ nghiệp vụ chính (cập nhật tồn, tạo receipt, tạo detail)
+        //   đã hoàn thành TRƯỚC khi phát event.
+        // - Nếu có lỗi ở trên ➜ throw exception ➜ không phát event ➜ listener không chạy.
+        publishStockChanged(
+            productId,
+            oldQty,
+            quantity,                           // delta dương = nhập kho
+            savedInventory.getQuantityStock(),
+            InventoryChangeType.IMPORT,
+            staffAccountId,
+            InventoryReferenceType.IMPORT_RECEIPT,
+            savedReceipt.getImportReceiptId()
+        );
+    }
+--------------------------------------------------
+
+
+--- [D] THAY ĐỔI 4: SỬA METHOD importStock() ĐỂ PHÁT EVENT ---
+
+TRƯỚC (code hiện tại, dòng 94-152, phần vòng lặp for):
+--------------------------------------------------
+        for (int i = 0; i < productIds.size(); i++) {
+            Integer productId = productIds.get(i);
+            int quantity = quantities.get(i);
+            BigDecimal price = importPrices.get(i);
+
+            com.example.Jewelry.model.entity.Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm có ID: " + productId));
+
+            Optional<Inventory> optionalInventory = inventoryRepository.findByProductProductId(productId);
+            if (optionalInventory.isPresent()) {
+                Inventory inventory = optionalInventory.get();
+                inventory.setQuantityStock(inventory.getQuantityStock() + quantity);
+                inventoryRepository.save(inventory);
+            } else {
+                Inventory inventory = new Inventory();
+                inventory.setProduct(product);
+                inventory.setQuantityStock(quantity);
+                inventoryRepository.save(inventory);
+            }
+
+            ImportDetail detail = new ImportDetail();
+            detail.setImportReceipt(savedReceipt);
+            detail.setProduct(product);
+            detail.setQuantity(quantity);
+            detail.setImportPrice(price);
+            importDetailRepository.save(detail);
+
+            savedReceipt.getDetails().add(detail);
+        }
+--------------------------------------------------
+
+SAU (thay thế bằng applyStockDelta + thêm publishStockChanged cho MỖI sản phẩm):
+--------------------------------------------------
+        for (int i = 0; i < productIds.size(); i++) {
+            Integer productId = productIds.get(i);
+            int quantity = quantities.get(i);
+            BigDecimal price = importPrices.get(i);
+
+            Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm có ID: " + productId));
+
+            // [SỬA] Gom logic cập nhật tồn kho về applyStockDelta()
+            int oldQty = inventoryRepository.findByProductProductId(productId)
+                .map(Inventory::getQuantityStock).orElse(0);
+            Inventory savedInventory = applyStockDelta(product, quantity);
+
+            ImportDetail detail = new ImportDetail();
+            detail.setImportReceipt(savedReceipt);
+            detail.setProduct(product);
+            detail.setQuantity(quantity);
+            detail.setImportPrice(price);
+            importDetailRepository.save(detail);
+
+            savedReceipt.getDetails().add(detail);
+
+            // [MỚI] Phát event cho TỪNG sản phẩm trong batch
+            // Tại sao phát event trong vòng lặp, không phát 1 lần ngoài?
+            // - Mỗi sản phẩm có thể có ngưỡng cảnh báo khác nhau.
+            // - Listener cần biết chính xác sản phẩm nào thay đổi bao nhiêu.
+            // - Audit log cần ghi CHI TIẾT từng dòng hàng.
+            publishStockChanged(
+                productId,
+                oldQty,
+                quantity,
+                savedInventory.getQuantityStock(),
+                InventoryChangeType.IMPORT,
+                staffAccountId,
+                InventoryReferenceType.IMPORT_RECEIPT,
+                savedReceipt.getImportReceiptId()
+            );
+        }
+--------------------------------------------------
+
+
+--- [E] THAY ĐỔI 5: SỬA METHOD deductStockForSale() ĐỂ PHÁT EVENT ---
+
+TRƯỚC (code hiện tại, dòng 154-171):
+--------------------------------------------------
+    @Override
+    @Transactional
+    public void deductStockForSale(Integer productId, int quantity,
+                                    Integer staffAccountId, Integer orderId) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Số lượng bán phải lớn hơn 0.");
+        }
+
+        Inventory inventory = inventoryRepository.findByProductProductId(productId)
+            .orElseThrow(() -> new IllegalArgumentException("Sản phẩm chưa có tồn kho để trừ."));
+
+        int current = Math.max(0, inventory.getQuantityStock());
+        if (quantity > current) {
+            throw new IllegalArgumentException(
+                "Không đủ tồn kho cho sản phẩm ID " + productId + ". Còn " + current + "."
+            );
+        }
+
+        inventory.updateStock(current - quantity);
+        inventoryRepository.save(inventory);
+    }
+--------------------------------------------------
+
+SAU (thay thế bằng applyStockDelta + thêm publishStockChanged):
+--------------------------------------------------
+    @Override
+    @Transactional
+    public void deductStockForSale(Integer productId, int quantity,
+                                    Integer staffAccountId, Integer orderId) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Số lượng bán phải lớn hơn 0.");
+        }
+
+        Product product = productRepository.findById(productId)
+            .orElseThrow(() -> new IllegalArgumentException("Sản phẩm chưa có trong hệ thống."));
+
+        // [SỬA] Dùng applyStockDelta thay vì thao tác trực tiếp trên inventory
+        // TRƯỚC: inventory.updateStock(current - quantity); inventoryRepository.save(inventory);
+        // SAU:   applyStockDelta(product, -quantity) ← delta ÂM vì trừ kho
+        // Tại sao? ➜ Logic kiểm tra tồn kho âm và save nằm gọn trong applyStockDelta,
+        //            không cần lặp lại ở đây.
+        int oldQty = inventoryRepository.findByProductProductId(productId)
+            .map(Inventory::getQuantityStock).orElse(0);
+        Inventory savedInventory = applyStockDelta(product, -quantity);
+
+        // [MỚI] Phát event Observer: tồn kho giảm do BÁN HÀNG
+        // Listener sẽ tự động:
+        //   - LowStockAlertListener: cảnh báo nếu tồn kho thấp
+        //   - InventoryAuditListener: ghi lịch sử "ai bán, bao nhiêu, khi nào"
+        publishStockChanged(
+            productId,
+            oldQty,
+            -quantity,                           // delta ÂM = trừ kho
+            savedInventory.getQuantityStock(),
+            InventoryChangeType.SALE,
+            staffAccountId,
+            InventoryReferenceType.ORDER,
+            orderId
+        );
+    }
+--------------------------------------------------
+
+TẠI SAO SỬA deductStockForSale() QUAN TRỌNG?
+- Đây là nơi OrderController gọi khi bán hàng/checkout.
+- TRƯỚC: trừ kho xong, không ai biết ➜ không cảnh báo, không ghi log.
+- SAU:   trừ kho xong, phát event ➜ TẤT CẢ listener đều biết ➜ cảnh báo + audit
+  hoạt động TỰ ĐỘNG mà OrderController không cần sửa gì.
+
+
+====================================================================
+PHẦN D - TÓM TẮT LUỒNG MỚI SAU KHI ÁP DỤNG
+====================================================================
+
+LUỒNG NHẬP KHO (addStock / importStock):
+----------------------------------------------------------------------
+Bước 1: InventoryController nhận request từ frontend (KHÔNG ĐỔI)
+Bước 2: Gọi InventoryServiceImpl.addStock() hoặc importStock()
+Bước 3: Service gọi applyStockDelta() ➜ cập nhật tồn kho [MỚI]
+Bước 4: Service tạo ImportReceipt + ImportDetail (KHÔNG ĐỔI)
+Bước 5: Service gọi publishStockChanged(IMPORT) [MỚI]
+Bước 6: Spring tự động gửi event tới:
+         ├── LowStockAlertListener ➜ kiểm tra cảnh báo [MỚI]
+         └── InventoryAuditListener ➜ ghi lịch sử [MỚI]
+
+LUỒNG BÁN HÀNG/CHECKOUT:
+----------------------------------------------------------------------
+Bước 1: OrderController nhận request checkout (KHÔNG ĐỔI)
+Bước 2: Gọi InventoryServiceImpl.deductStockForSale()
+Bước 3: Service gọi applyStockDelta(-quantity) ➜ trừ tồn kho [MỚI]
+Bước 4: Service gọi publishStockChanged(SALE) [MỚI]
+Bước 5: Spring tự động gửi event tới:
+         ├── LowStockAlertListener ➜ cảnh báo nếu tồn thấp [MỚI]
+         └── InventoryAuditListener ➜ ghi lịch sử bán [MỚI]
+
+BẢNG TÓM TẮT THAY ĐỔI:
+----------------------------------------------------------------------
+| File                          | Hành động | Thay đổi chính                  |
+|-------------------------------|-----------|----------------------------------|
+| InventoryChangeType.java      | TẠO MỚI   | Enum loại biến động              |
+| InventoryReferenceType.java   | TẠO MỚI   | Enum loại chứng từ               |
+| InventoryStockChangedEvent.java| TẠO MỚI  | Event object                     |
+| LowStockAlertListener.java    | TẠO MỚI   | Observer cảnh báo tồn thấp       |
+| InventoryAuditListener.java   | TẠO MỚI   | Observer ghi audit log           |
+| InventoryServiceImpl.java     | CHỈNH SỬA | Thêm publisher + applyStockDelta |
+| InventoryController.java      | KHÔNG SỬA | ---                              |
+| OrderController.java          | KHÔNG SỬA | ---                              |
+| InventoryService.java         | KHÔNG SỬA | ---                              |
+----------------------------------------------------------------------
+
+CÁC ĐIỂM AN TOÀN:
+- Endpoint API KHÔNG ĐỔI ➜ frontend không cần sửa.
+- Interface InventoryService KHÔNG ĐỔI ➜ các nơi gọi service không bị ảnh hưởng.
+- Listener lỗi KHÔNG ảnh hưởng luồng chính (chạy AFTER_COMMIT).
+- Không thêm dependency/thư viện mới (dùng sẵn Spring Event).
+
+MỞ RỘNG TƯƠNG LAI (chỉ cần tạo thêm listener):
+- Gửi email khi tồn thấp ➜ tạo EmailNotificationListener.java
+- Dashboard realtime ➜ tạo DashboardMetricsListener.java
+- Đồng bộ hệ thống khác ➜ tạo ExternalSyncListener.java
+➜ TẤT CẢ đều KHÔNG CẦN SỬA InventoryServiceImpl.

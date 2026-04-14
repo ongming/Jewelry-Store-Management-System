@@ -1,6 +1,7 @@
 package com.example.Jewelry.controller;
 
 import com.example.Jewelry.service.InventoryService;
+import com.example.Jewelry.service.LowStockAlertService;
 import com.example.Jewelry.service.ProductService;
 import com.example.Jewelry.service.SupplierService;
 import jakarta.servlet.http.HttpSession;
@@ -20,13 +21,16 @@ public class InventoryController {
     private final InventoryService inventoryService;
     private final ProductService productService;
     private final SupplierService supplierService;
+    private final LowStockAlertService lowStockAlertService;
 
     public InventoryController(InventoryService inventoryService,
                                ProductService productService,
-                               SupplierService supplierService) {
+                               SupplierService supplierService,
+                               LowStockAlertService lowStockAlertService) {
         this.inventoryService = inventoryService;
         this.productService = productService;
         this.supplierService = supplierService;
+        this.lowStockAlertService = lowStockAlertService;
     }
 
     @GetMapping("/admin/inventory")
@@ -37,6 +41,9 @@ public class InventoryController {
             model.addAttribute("products", List.of());
             model.addAttribute("error", "Lỗi khi tải danh sách sản phẩm: " + e.getMessage());
         }
+        // [OBSERVER] Truyền cảnh báo tồn kho thấp từ listener ra UI
+        model.addAttribute("lowStockAlerts", lowStockAlertService.getAlerts());
+        model.addAttribute("lowStockThreshold", 5);
         return "admin/inventory";
     }
 
@@ -50,6 +57,9 @@ public class InventoryController {
             model.addAttribute("suppliers", List.of());
             model.addAttribute("error", "Lỗi khi tải dữ liệu: " + e.getMessage());
         }
+        // [OBSERVER] Truyền cảnh báo tồn kho thấp từ listener ra UI
+        model.addAttribute("lowStockAlerts", lowStockAlertService.getAlerts());
+        model.addAttribute("lowStockThreshold", 5);
         return "staff/inventory";
     }
 
