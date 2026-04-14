@@ -201,6 +201,50 @@ CREATE TABLE payment (
 );
 
 -- ========================
+-- OTP VERIFICATION
+-- ========================
+CREATE TABLE otp_verification (
+    otp_id INT IDENTITY PRIMARY KEY,
+    email NVARCHAR(255) UNIQUE NOT NULL,
+    otp_code NVARCHAR(10) NOT NULL,
+    full_name NVARCHAR(150) NOT NULL,
+    username NVARCHAR(100) NOT NULL,
+    password_hash NVARCHAR(255) NOT NULL,
+    is_verified BIT DEFAULT 0 NOT NULL,
+    created_at DATETIME DEFAULT GETDATE() NOT NULL,
+    expires_at DATETIME NOT NULL,
+    CONSTRAINT chk_otp_code_length CHECK (LEN(otp_code) = 6)
+);
+
+-- ========================
+-- INVENTORY AUDIT LOG
+-- ========================
+CREATE TABLE inventory_audit_log (
+    log_id INT IDENTITY PRIMARY KEY,
+    inventory_id INT,
+    quantity_before INT,
+    quantity_after INT,
+    action NVARCHAR(100),
+    changed_by INT,
+    changed_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (inventory_id) REFERENCES inventory(inventory_id),
+    FOREIGN KEY (changed_by) REFERENCES staff(account_id)
+);
+
+-- ========================
+-- INVENTORY LOW STOCK ALERT
+-- ========================
+CREATE TABLE inventory_low_stock_alert (
+    alert_id INT IDENTITY PRIMARY KEY,
+    product_id INT,
+    current_quantity INT,
+    threshold_quantity INT,
+    alert_date DATETIME DEFAULT GETDATE(),
+    is_resolved BIT DEFAULT 0,
+    FOREIGN KEY (product_id) REFERENCES product(product_id)
+);
+
+-- ========================
 -- SEED DATA (CHUẨN KHÔNG LỖI)
 -- ========================
 
