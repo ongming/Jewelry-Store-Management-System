@@ -258,6 +258,34 @@ INSERT INTO inventory VALUES
 (10, 2),
 (15, 3);
 
+-- EXTRA PRODUCTS (FOR REPORTING DATA)
+INSERT INTO product VALUES
+(N'R003', N'Nhẫn Emerald', 6700000, N'Nhẫn đá emerald sang trọng', 1),
+(N'R004', N'Nhẫn Ruby', 7200000, N'Nhẫn ruby cao cấp', 1),
+(N'N002', N'Dây chuyền Aurora', 9300000, N'Dây chuyền thiết kế hiện đại', 2),
+(N'N003', N'Dây chuyền Classic', 8100000, N'Dây chuyền phong cách cổ điển', 2),
+(N'R005', N'Nhẫn Platinum P1', 11800000, N'Nhẫn bạch kim tinh xảo', 1),
+(N'N004', N'Dây chuyền Moonlight', 7600000, N'Dây chuyền ánh bạc thanh lịch', 2),
+(N'R006', N'Nhẫn Opal O2', 6900000, N'Nhẫn opal thời trang', 1);
+
+INSERT INTO product_attribute VALUES
+(4, N'Chất liệu', N'Vàng trắng 18K'),
+(5, N'Chất liệu', N'Vàng 18K'),
+(6, N'Chiều dài', N'42cm'),
+(7, N'Chiều dài', N'40cm'),
+(8, N'Chất liệu', N'Bạch kim'),
+(9, N'Chiều dài', N'46cm'),
+(10, N'Đá', N'Opal');
+
+INSERT INTO inventory VALUES
+(6, 4),
+(12, 5),
+(4, 6),
+(0, 7),
+(8, 8),
+(25, 9),
+(11, 10);
+
 -- SUPPLIER
 INSERT INTO supplier VALUES
 (N'Gold Supplier', '0909999999', N'HCM');
@@ -287,6 +315,71 @@ INSERT INTO order_detail VALUES
 -- PAYMENT
 INSERT INTO payment VALUES
 (N'CASH', 1);
+
+-- EXTRA ORDERS (FOR DASHBOARD CHARTS)
+DECLARE @productCount INT = (SELECT COUNT(*) FROM product);
+DECLARE @i INT = 2;
+WHILE @i <= 90
+BEGIN
+    DECLARE @orderDate DATETIME = DATEADD(DAY, -@i, GETDATE());
+    DECLARE @status NVARCHAR(30) = CASE WHEN @i % 11 = 0 THEN N'CANCELLED' ELSE N'PAID' END;
+    DECLARE @customerId INT = CASE WHEN @i % 2 = 0 THEN 1 ELSE 2 END;
+    DECLARE @voucherId INT = CASE WHEN @i % 6 = 0 THEN 1 WHEN @i % 10 = 0 THEN 2 ELSE NULL END;
+
+    INSERT INTO orders(order_number, order_date, status, final_total, customer_id, staff_account_id, voucher_id)
+    VALUES (
+        N'ORD' + RIGHT('000' + CAST(@i AS NVARCHAR(3)), 3),
+        @orderDate,
+        @status,
+        0,
+        @customerId,
+        2,
+        @voucherId
+    );
+
+    DECLARE @orderId INT = SCOPE_IDENTITY();
+    DECLARE @product1 INT = ((@i - 1) % @productCount) + 1;
+    DECLARE @qty1 INT = (@i % 4) + 1;
+    DECLARE @price1 DECIMAL(15,2) = ISNULL((SELECT base_price FROM product WHERE product_id = @product1), 1000000);
+
+    INSERT INTO order_detail(quantity, unit_price, order_id, product_id)
+    VALUES (@qty1, @price1, @orderId, @product1);
+
+    IF (@i % 2 = 0)
+    BEGIN
+        DECLARE @product2 INT = ((@i + 2) % @productCount) + 1;
+        DECLARE @qty2 INT = (@i % 3) + 1;
+        DECLARE @price2 DECIMAL(15,2) = ISNULL((SELECT base_price FROM product WHERE product_id = @product2), 1000000);
+
+        INSERT INTO order_detail(quantity, unit_price, order_id, product_id)
+        VALUES (@qty2, @price2, @orderId, @product2);
+    END
+
+    DECLARE @orderTotal DECIMAL(15,2) = (
+        SELECT SUM(quantity * unit_price)
+        FROM order_detail
+        WHERE order_id = @orderId
+    );
+
+    UPDATE orders
+    SET final_total = ISNULL(@orderTotal, 0)
+    WHERE order_id = @orderId;
+
+    IF (@status = N'PAID')
+    BEGIN
+        INSERT INTO payment(method, order_id)
+        VALUES (
+            CASE
+                WHEN @i % 3 = 0 THEN N'CARD'
+                WHEN @i % 3 = 1 THEN N'CASH'
+                ELSE N'BANK'
+            END,
+            @orderId
+        );
+    END
+
+    SET @i = @i + 1;
+END
 
 UPDATE product
 SET detail = N'Nhẫn vàng 18K cao cấp được chế tác tinh xảo với độ hoàn thiện cao, mang lại vẻ đẹp sang trọng và đẳng cấp cho người đeo. Sản phẩm sử dụng vàng 18K với độ bền tốt, màu sắc sáng bóng lâu dài và không bị xỉn màu theo thời gian. Thiết kế tối giản nhưng tinh tế, phù hợp cho nhiều dịp như đi làm, dự tiệc hoặc làm quà tặng. Nhẫn có trọng lượng vừa phải, đeo thoải mái trong thời gian dài mà không gây khó chịu.'
