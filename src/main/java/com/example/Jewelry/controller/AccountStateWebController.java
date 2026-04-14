@@ -2,6 +2,7 @@ package com.example.Jewelry.controller;
 
 import com.example.Jewelry.model.entity.Account;
 import com.example.Jewelry.model.entity.Admin;
+import com.example.Jewelry.model.entity.Staff;
 import com.example.Jewelry.service.AccountService;
 import com.example.Jewelry.service.AdminService;
 import jakarta.servlet.http.HttpSession;
@@ -168,6 +169,72 @@ public class AccountStateWebController {
         }
 
         return "redirect:/admin/account-state/dashboard";
+    }
+
+    /**
+     * Hiển thị danh sách Staff mà Admin quản lý + TẤT CẢ tài khoản INACTIVE
+     * Admin sẽ thấy: 
+     * - Staff của mình (ACTIVE)
+     * - Tất cả tài khoản INACTIVE (bất kể là Staff hay Admin)
+     */
+    @GetMapping("/staff-management")
+    public String staffManagement(HttpSession session, Model model) {
+        Object roleName = session.getAttribute("roleName");
+        if (!"ADMIN".equals(roleName)) {
+            return "redirect:/auth/login";
+        }
+
+        Integer adminAccountId = (Integer) session.getAttribute("accountId");
+        if (adminAccountId == null) {
+            return "redirect:/auth/login";
+        }
+
+        // Lấy danh sách Staff mà Admin quản lý (ACTIVE)
+        List<Staff> visibleStaffs = adminService.getVisibleStaff(adminAccountId);
+        
+        // Lấy TẤT CẢ tài khoản INACTIVE (bất kể role)
+        List<Account> allInactiveAccounts = adminService.getAllVisibleInactiveAccounts();
+
+        // Phân loại
+        long activeManagedCount = visibleStaffs.stream()
+                .filter(s -> "ACTIVE".equalsIgnoreCase(s.getStatus()))
+                .count();
+        long inactiveCount = allInactiveAccounts.size();
+
+        model.addAttribute("staffs", visibleStaffs);
+        model.addAttribute("inactiveAccounts", allInactiveAccounts);
+        model.addAttribute("activeManagedCount", activeManagedCount);
+        model.addAttribute("inactiveCount", inactiveCount);
+        model.addAttribute("totalAccounts", activeManagedCount + inactiveCount);
+
+        return "admin/inactive-staff-management";
+    }
+
+    /**
+     * Kích hoạt Staff INACTIVE và gán Manager Admin = admin hiện tại
+     */
+    @PostMapping("/activate-inactive-staff")
+    public String activateInactiveStaff(@RequestParam Integer staffAccountId,
+                                        HttpSession session,
+                                        org.springframework.web.servlet.mvc.support.RedirectAttributes redirectAttributes) {
+        Object roleName = session.getAttribute("roleName");
+        if (!"ADMIN".equals(roleName)) {
+            return "redirect:/auth/login";
+        }
+
+        Integer adminAccountId = (Integer) session.getAttribute("accountId");
+        if (adminAccountId == null) {
+            return "redirect:/auth/login";
+        }
+
+        try {
+            adminService.activateInactiveStaff(staffAccountId, adminAccountId);
+            redirectAttributes.addFlashAttribute("success", "✅ Kích hoạt Staff thành công và gán Manager Admin cho Staff");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "❌ Lỗi: " + e.getMessage());
+        }
+
+        return "redirect:/admin/account-state/staff-management";
     }
 
     /**

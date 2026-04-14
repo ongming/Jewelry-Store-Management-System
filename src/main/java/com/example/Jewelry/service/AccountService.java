@@ -30,4 +30,9 @@ public interface AccountService {
     void activateAccount(Integer accountId);
 
     void lockAccount(Integer accountId);
+
+    /**
+     * Lấy tất cả tài khoản INACTIVE (bất kể role)
+     */
+    List<Account> findAllInactiveAccounts();
 }

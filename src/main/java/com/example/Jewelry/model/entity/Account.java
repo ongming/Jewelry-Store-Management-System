@@ -13,6 +13,7 @@ import jakarta.persistence.Transient;
 
 import com.example.Jewelry.model.state.AccountState;
 import com.example.Jewelry.model.state.ActiveState;
+import com.example.Jewelry.model.state.InactiveState;
 import com.example.Jewelry.model.state.LockedOutState;
 import com.example.Jewelry.model.state.SuspendedState;
 
@@ -74,6 +75,8 @@ public class Account {
             this.state = new LockedOutState();
         } else if ("SUSPENDED".equalsIgnoreCase(this.status)) {
             this.state = new SuspendedState();
+        } else if ("INACTIVE".equalsIgnoreCase(this.status)) {
+            this.state = new InactiveState();
         } else {
             this.state = new ActiveState();
         }

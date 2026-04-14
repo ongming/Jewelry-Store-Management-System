@@ -17,7 +17,10 @@
         <section class="catalog-panel">
             <div class="catalog-panel__top toolbar-wrap">
                 <h2>Danh sách nhân sự</h2>
-                <a class="btn btn-primary" th:href="@{/admin/staff-management(create=true)}">+ Thêm nhân sự</a>
+                <div style="display: flex; gap: 10px;">
+                    <a class="btn btn-primary" th:href="@{/admin/staff-management(create=true)}">+ Thêm nhân sự</a>
+                    <a class="btn btn-warning" th:href="@{/admin/account-state/staff-management}" style="background-color: #ff9800; color: white;">⚠️ Xem Tài Khoản Chưa Kích Hoạt</a>
+                </div>
             </div>
 
             <form class="table-toolbar" method="get" th:action="@{/admin/staff-management}">

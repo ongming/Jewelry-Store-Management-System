@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng ký tài khoản nhân viên</title>
+    <link rel="stylesheet" th:href="@{/css/management/login.css}">
+    <style>
+        .register-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .form-row-register {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .register-footer {
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .register-footer a {
+            color: #0066cc;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .register-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .password-requirements {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: -0.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .success-message {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 0.75rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 600px) {
+            .form-row-register {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<main class="login-page" role="main">
+    <div class="backdrop"></div>
+
+    <section class="login-card" aria-labelledby="register-title">
+        <p class="eyebrow">Đăng ký mới</p>
+        <h1 id="register-title">Tạo tài khoản nhân viên</h1>
+        <p class="subtitle">Đăng ký tài khoản để truy cập hệ thống quản lý trang sức.</p>
+
+        <p th:if="${success}" th:text="${success}" class="success-message"></p>
+        <p th:if="${error}" th:text="${error}" class="error"></p>
+        
+        <div style="background-color: #e7f3ff; border-left: 4px solid #0066cc; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; font-size: 0.9rem; color: #333;">
+            📧 <strong>Quy trình đăng ký:</strong><br>
+            1. Điền thông tin và gửi<br>
+            2. Bạn sẽ nhận OTP qua email<br>
+            3. Nhập OTP để hoàn tất đăng ký
+        </div>
+
+        <form th:action="@{/auth/register}" method="post" class="register-form" id="registerForm">
+            <div class="input-group">
+                <input id="fullName" name="fullName" type="text" th:value="${fullName}" required>
+                <label for="fullName">Họ tên đầy đủ</label>
+            </div>
+
+            <div class="input-group">
+                <input id="email" name="email" type="email" th:value="${email}" required>
+                <label for="email">Địa chỉ email</label>
+            </div>
+
+            <div class="input-group">
+                <input id="username" name="username" type="text" th:value="${username}" autocomplete="username" required>
+                <label for="username">Tên đăng nhập</label>
+            </div>
+
+            <div class="form-row-register">
+                <div class="input-group">
+                    <input id="password" name="password" type="password" autocomplete="new-password" required>
+                    <label for="password">Mật khẩu</label>
+                </div>
+
+                <div class="input-group">
+                    <input id="passwordConfirm" name="passwordConfirm" type="password" autocomplete="new-password" required>
+                    <label for="passwordConfirm">Xác nhận mật khẩu</label>
+                </div>
+            </div>
+            <p class="password-requirements">ℹ️ Mật khẩu phải có ít nhất 6 ký tự</p>
+
+            <button type="submit" class="login-btn" id="registerBtn">
+                <span class="btn-text">Tiếp tục (Gửi OTP)</span>
+                <span class="spinner" aria-hidden="true"></span>
+            </button>
+
+            <div class="register-footer">
+                <p>Đã có tài khoản? <a th:href="@{/auth/login}">Đăng nhập ngay</a></p>
+            </div>
+
+            <div class="back-store-row">
+                <a class="forgot-link" th:href="@{/home}">Về lại trang bán hàng</a>
+            </div>
+        </form>
+    </section>
+</main>
+
+<script>
+    const registerForm = document.getElementById('registerForm');
+    const registerBtn = document.getElementById('registerBtn');
+    const passwordInput = document.getElementById('password');
+    const passwordConfirmInput = document.getElementById('passwordConfirm');
+
+    // Kiểm tra mật khẩu trùng khớp khi nhập
+    passwordConfirmInput.addEventListener('input', function() {
+        if (passwordInput.value !== passwordConfirmInput.value) {
+            passwordConfirmInput.style.borderColor = '#dc3545';
+        } else {
+            passwordConfirmInput.style.borderColor = '#ccc';
+        }
+    });
+
+    registerForm.addEventListener('submit', function(e) {
+        // Kiểm tra mật khẩu trùng khớp trước khi gửi
+        if (passwordInput.value !== passwordConfirmInput.value) {
+            e.preventDefault();
+            alert('Mật khẩu xác nhận không trùng khớp!');
+            return;
+        }
+
+        // Kiểm tra độ dài mật khẩu
+        if (passwordInput.value.length < 6) {
+            e.preventDefault();
+            alert('Mật khẩu phải có ít nhất 6 ký tự!');
+            return;
+        }
+
+        registerBtn.classList.add('is-loading');
+        registerBtn.setAttribute('aria-busy', 'true');
+    });
+</script>
+</body>
+</html>

@@ -89,4 +89,9 @@ public class AccountServiceImpl implements AccountService {
             accountRepository.save(account);
         });
     }
+
+    @Override
+    public List<Account> findAllInactiveAccounts() {
+        return accountRepository.findByStatusIgnoreCase("INACTIVE");
+    }
 }
