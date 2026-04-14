@@ -3,7 +3,8 @@ package com.example.Jewelry.template;
 public enum ReportPeriod {
     DAILY,
     WEEKLY,
-    MONTHLY;
+    MONTHLY,
+    YEARLY;
 
     public static ReportPeriod fromString(String value) {
         if (value == null) {
@@ -13,7 +14,9 @@ public enum ReportPeriod {
         return switch (normalized) {
             case "weekly", "week" -> WEEKLY;
             case "monthly", "month" -> MONTHLY;
+            case "yearly", "year" -> YEARLY;
             default -> DAILY;
         };
     }
 }
+

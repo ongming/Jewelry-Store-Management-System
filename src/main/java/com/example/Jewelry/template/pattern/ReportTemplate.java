@@ -1,4 +1,7 @@
-package com.example.Jewelry.template;
+package com.example.Jewelry.template.pattern;
+
+import com.example.Jewelry.template.ReportResult;
+import com.example.Jewelry.template.ReportRow;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -56,3 +59,4 @@ public abstract class ReportTemplate {
         return !value.isBefore(startAt) && !value.isAfter(endAt);
     }
 }
+

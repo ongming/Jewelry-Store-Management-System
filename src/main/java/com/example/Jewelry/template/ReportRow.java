@@ -33,3 +33,4 @@ public class ReportRow {
         return occurredAt;
     }
 }
+

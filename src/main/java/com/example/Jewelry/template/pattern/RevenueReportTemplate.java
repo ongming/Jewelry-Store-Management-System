@@ -1,7 +1,8 @@
-package com.example.Jewelry.template;
+package com.example.Jewelry.template.pattern;
 
 import com.example.Jewelry.model.entity.Order;
 import com.example.Jewelry.repository.OrderRepository;
+import com.example.Jewelry.template.ReportRow;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -31,3 +32,4 @@ public class RevenueReportTemplate extends ReportTemplate {
         return new ReportRow(label, order.getFinalTotal(), 1, order.getOrderDate());
     }
 }
+

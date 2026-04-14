@@ -53,6 +53,10 @@
     border-collapse: collapse;
 }
 
+.table-shell {
+    overflow-x: auto;
+}
+
 .customer-table th,
 .customer-table td,
 .order-summary-table th,
@@ -167,11 +171,21 @@
 }
 
 .order-shell {
-    max-height: 260px;
+    max-height: min(44vh, 320px);
+    overflow-y: auto;
 }
 
 .detail-shell {
-    max-height: 280px;
+    max-height: min(46vh, 360px);
+    overflow-y: auto;
+}
+
+.order-summary-table thead th,
+.order-detail-table thead th {
+    position: sticky;
+    top: 0;
+    background: #151515;
+    z-index: 1;
 }
 
 .order-total-line {
