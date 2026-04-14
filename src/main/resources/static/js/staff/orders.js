@@ -37,6 +37,8 @@
         cancelVoucherBtn: document.getElementById("cancelVoucherBtn"),
         availableVoucherList: document.getElementById("availableVoucherList"),
         modalVoucherList: document.getElementById("modalVoucherList"),
+        appliedVoucherCodeInput: document.getElementById("appliedVoucherCodeInput"),
+        appliedVoucherCodeLabel: document.getElementById("appliedVoucherCodeLabel"),
         toastStack: document.getElementById("toastStack")
     };
 
@@ -288,7 +290,7 @@
                             if (input) {
                                 input.value = selected.code;
                             }
-                            if (applyBtn && !input.disabled) {
+                            if (applyBtn && !input.readOnly) {
                                 applyBtn.click();
                             }
                         } else if (refs.voucherCode) {
@@ -442,6 +444,9 @@
         const submitter = event.submitter;
         const action = submitter && submitter.dataset.orderAction ? submitter.dataset.orderAction : "checkout";
         refs.orderAction.value = action;
+        if (refs.appliedVoucherCodeInput) {
+            refs.appliedVoucherCodeInput.value = currentVoucher && currentVoucher.code ? currentVoucher.code : "";
+        }
         updatePayload();
 
         if (action === "checkout") {
@@ -474,6 +479,28 @@
     refs.closeClearModal.addEventListener("click", () => closeModal(refs.clearCartModal));
     refs.confirmClearCart.addEventListener("click", () => {
         cart.clear();
+        currentVoucher = null;
+        currentDiscount = 0;
+        if (refs.appliedVoucherCodeInput) {
+            refs.appliedVoucherCodeInput.value = "";
+        }
+        if (refs.appliedVoucherCodeLabel) {
+            refs.appliedVoucherCodeLabel.textContent = "";
+        }
+        if (currentVoucherCodeInput) {
+            currentVoucherCodeInput.readOnly = false;
+            currentVoucherCodeInput.value = "";
+        }
+        const currentVoucherInfo = document.getElementById("currentVoucherInfo");
+        if (currentVoucherInfo) {
+            currentVoucherInfo.style.display = "none";
+        }
+        if (applyCurrentVoucherBtn) {
+            applyCurrentVoucherBtn.style.display = "block";
+        }
+        if (removeCurrentVoucherBtn) {
+            removeCurrentVoucherBtn.style.display = "none";
+        }
         renderCart();
         closeModal(refs.clearCartModal);
         toast("Đã hủy đơn hiện tại.");
@@ -611,6 +638,12 @@
                         console.log("DEBUG: Voucher not valid - success:", data.success, "voucherId:", data.voucherId);
                         toast("Mã voucher không hợp lệ hoặc không tồn tại.", true);
                         currentVoucherCodeInput.value = "";
+                        if (refs.appliedVoucherCodeInput) {
+                            refs.appliedVoucherCodeInput.value = "";
+                        }
+                        if (refs.appliedVoucherCodeLabel) {
+                            refs.appliedVoucherCodeLabel.textContent = "";
+                        }
                         return;
                     }
 
@@ -623,13 +656,18 @@
                     console.log("DEBUG: Current discount set to:", currentDiscount);
                     
                     // Cập nhật giao diện
-                    document.getElementById("appliedVoucherCode").textContent = data.code;
+                    if (refs.appliedVoucherCodeLabel) {
+                        refs.appliedVoucherCodeLabel.textContent = data.code || "";
+                    }
                     document.getElementById("discountAmount").textContent = formatMoney(currentDiscount);
                     document.getElementById("currentVoucherInfo").style.display = "block";
                     
                     applyCurrentVoucherBtn.style.display = "none";
                     removeCurrentVoucherBtn.style.display = "block";
-                    currentVoucherCodeInput.disabled = true;
+                    currentVoucherCodeInput.readOnly = true;
+                    if (refs.appliedVoucherCodeInput) {
+                        refs.appliedVoucherCodeInput.value = data.code || "";
+                    }
                     
                     updateCartDisplay();
                     renderAvailableVoucherLists();
@@ -639,6 +677,12 @@
                     console.error("DEBUG: Fetch error:", error);
                     toast("Lỗi khi kiểm tra voucher. Vui lòng thử lại.", true);
                     currentVoucherCodeInput.value = "";
+                    if (refs.appliedVoucherCodeInput) {
+                        refs.appliedVoucherCodeInput.value = "";
+                    }
+                    if (refs.appliedVoucherCodeLabel) {
+                        refs.appliedVoucherCodeLabel.textContent = "";
+                    }
                 });
         });
     }
@@ -651,8 +695,14 @@
             document.getElementById("currentVoucherInfo").style.display = "none";
             applyCurrentVoucherBtn.style.display = "block";
             removeCurrentVoucherBtn.style.display = "none";
-            currentVoucherCodeInput.disabled = false;
+            currentVoucherCodeInput.readOnly = false;
             currentVoucherCodeInput.value = "";
+            if (refs.appliedVoucherCodeInput) {
+                refs.appliedVoucherCodeInput.value = "";
+            }
+            if (refs.appliedVoucherCodeLabel) {
+                refs.appliedVoucherCodeLabel.textContent = "";
+            }
             
             updateCartDisplay();
             renderAvailableVoucherLists();

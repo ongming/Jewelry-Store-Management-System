@@ -130,6 +130,9 @@ public class Order {
 
     public void setPayment(Payment payment) {
         this.payment = payment;
+        if (payment != null && payment.getOrder() != this) {
+            payment.setOrder(this);
+        }
     }
 
     public Voucher getVoucher() {

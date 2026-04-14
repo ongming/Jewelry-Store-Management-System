@@ -17,6 +17,15 @@
 
         <p class="alert success" th:if="${success}" th:text="${success}"></p>
         <p class="alert error" th:if="${error}" th:text="${error}"></p>
+        <section th:if="${paymentQrUrl}" style="margin-bottom: 14px; background: #f8fbff; border: 1px solid #dbeafe; border-radius: 10px; padding: 12px;">
+            <h3 style="margin: 0 0 8px;" th:text="'QR thanh toán ' + (${paymentMethodLabel} ?: 'Online')">QR thanh toán</h3>
+            <p style="margin: 0 0 6px;"><strong>Nội dung:</strong> <span th:text="${paymentOrderInfo}">Thanh toan don</span></p>
+            <p style="margin: 0 0 8px;"><strong>Số tiền:</strong> <span th:text="${#numbers.formatDecimal(paymentAmount, 0, 'COMMA', 0, 'POINT')} + ' VND'">0 VND</span></p>
+            <img th:src="${paymentQrUrl}" alt="Payment QR" style="width: 210px; max-width: 100%; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <p style="margin-top: 8px;" th:if="${paymentPayUrl}">
+                <a th:href="${paymentPayUrl}" target="_blank" rel="noopener">Mở trang thanh toán</a>
+            </p>
+        </section>
 
         <section class="pos-toolbar">
             <div class="pos-tabs" role="tablist" aria-label="Điều hướng bán hàng">
@@ -94,6 +103,7 @@
                     <form id="orderForm" class="pos-order-form" th:action="@{/staff/orders}" method="post">
                         <input type="hidden" name="cartPayload" id="cartPayload">
                         <input type="hidden" name="orderAction" id="orderAction" value="checkout">
+                        <input type="hidden" name="appliedVoucherCode" id="appliedVoucherCodeInput">
 
                         <label for="customerId">Khách hàng</label>
                         <select id="customerId" name="customerId" class="pos-input" required>
@@ -101,6 +111,13 @@
                             <option th:each="customer : ${customers}"
                                     th:value="${customer.customerId}"
                                     th:text="${customer.customerName}"></option>
+                        </select>
+
+                        <label for="paymentMethod">Phương thức thanh toán</label>
+                        <select id="paymentMethod" name="paymentMethod" class="pos-input">
+                            <option value="CASH">Tiền mặt</option>
+                            <option value="BANK_TRANSFER">Chuyển khoản</option>
+                            <option value="MOMO_VNPAY">MoMo/VNPay</option>
                         </select>
 
                         <div class="cart-items" id="cartItems">
@@ -114,6 +131,7 @@
                             <div style="display: flex; gap: 8px;">
                                 <input type="text" 
                                        id="currentVoucherCode" 
+                                       name="currentVoucherCode"
                                        placeholder="Nhập mã voucher" 
                                        style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 3px;">
                                 <button type="button" 
@@ -130,7 +148,7 @@
                                 </button>
                             </div>
                             <div id="currentVoucherInfo" style="margin-top: 8px; font-size: 12px; color: #666; display: none;">
-                                <p><strong>Voucher đã áp dụng:</strong> <span id="appliedVoucherCode"></span></p>
+                                <p><strong>Voucher đã áp dụng:</strong> <span id="appliedVoucherCodeLabel"></span></p>
                                 <p><strong>Giảm giá:</strong> <span id="discountAmount">0 VND</span></p>
                             </div>
 
@@ -201,7 +219,7 @@
                         <td>
                             <span class="badge"
                                   th:classappend="${order.status == 'PAID'} ? ' badge-status-active' : (${order.status == 'CANCELLED'} ? ' badge-status-inactive' : ' badge-status-pending')"
-                                  th:text="${order.status == 'PAID'} ? 'Đã thanh toán' : (${order.status == 'CANCELLED'} ? 'Đã hủy' : 'Chờ thanh toán')">
+                                  th:text="${order.status == 'PAID'} ? 'Đã thanh toán' : (${order.status == 'CANCELLED'} ? 'Đã hủy' : (${order.status == 'PENDING_PAYMENT'} ? 'Chờ thanh toán online' : 'Chờ thanh toán'))">
                                 Trạng thái
                             </span>
                         </td>
@@ -223,6 +241,11 @@
                                       th:action="@{/staff/orders/{id}/checkout(id=${order.orderId})}"
                                       method="post"
                                       onsubmit="return confirm('Xác nhận thanh toán đơn chờ này?');">
+                                    <select name="paymentMethod" class="pos-input" style="min-width: 148px;">
+                                        <option value="CASH">Tiền mặt</option>
+                                        <option value="BANK_TRANSFER">Chuyển khoản</option>
+                                        <option value="MOMO_VNPAY">MoMo/VNPay</option>
+                                    </select>
                                     <button class="btn btn-checkout btn-sm" type="submit">Thanh toán đơn</button>
                                 </form>
                                 <form th:if="${order.canCancel}"

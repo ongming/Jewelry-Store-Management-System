@@ -56,5 +56,8 @@ public class Payment {
 
     public void setOrder(Order order) {
         this.order = order;
+        if (order != null && order.getPayment() != this) {
+            order.setPayment(this);
+        }
     }
 }

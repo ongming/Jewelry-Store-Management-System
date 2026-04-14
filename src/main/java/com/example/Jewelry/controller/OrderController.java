@@ -7,9 +7,13 @@ import com.example.Jewelry.model.entity.OrderDetail;
 import com.example.Jewelry.model.entity.Product;
 import com.example.Jewelry.model.entity.Staff;
 import com.example.Jewelry.model.entity.Voucher;
+import com.example.Jewelry.payment.strategy.BankTransferPaymentStrategy;
+import com.example.Jewelry.payment.strategy.PaymentExecutionResult;
+import com.example.Jewelry.payment.strategy.MomoVnpayPaymentStrategy;
 import com.example.Jewelry.service.CustomerService;
 import com.example.Jewelry.service.InventoryService;
 import com.example.Jewelry.service.OrderService;
+import com.example.Jewelry.service.PaymentService;
 import com.example.Jewelry.service.ProductService;
 import com.example.Jewelry.service.StaffService;
 import com.example.Jewelry.service.VoucherService;
@@ -28,6 +32,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -47,6 +53,7 @@ public class OrderController {
     private final ProductService productService;
     private final CustomerService customerService;
     private final OrderService orderService;
+    private final PaymentService paymentService;
     private final StaffService staffService;
     private final InventoryService inventoryService;
     private final VoucherService voucherService;
@@ -55,6 +62,7 @@ public class OrderController {
     public OrderController(ProductService productService,
                            CustomerService customerService,
                            OrderService orderService,
+                           PaymentService paymentService,
                            StaffService staffService,
                            InventoryService inventoryService,
                            VoucherService voucherService,
@@ -62,6 +70,7 @@ public class OrderController {
         this.productService = productService;
         this.customerService = customerService;
         this.orderService = orderService;
+        this.paymentService = paymentService;
         this.staffService = staffService;
         this.inventoryService = inventoryService;
         this.voucherService = voucherService;
@@ -85,6 +94,9 @@ public class OrderController {
     public String create(@RequestParam Integer customerId,
                          @RequestParam String cartPayload,
                          @RequestParam(defaultValue = "checkout") String orderAction,
+                         @RequestParam(defaultValue = "CASH") String paymentMethod,
+                         @RequestParam(required = false) String appliedVoucherCode,
+                         @RequestParam(required = false) String currentVoucherCode,
                          HttpSession session,
                          RedirectAttributes redirectAttributes) {
         Staff staff = resolveCurrentStaff(session);
@@ -113,6 +125,8 @@ public class OrderController {
         }
 
         boolean checkoutNow = "checkout".equalsIgnoreCase(orderAction);
+        boolean pendingPaymentMethod = checkoutNow && isPendingPaymentMethod(paymentMethod);
+        boolean shouldCaptureImmediately = checkoutNow && !pendingPaymentMethod;
         List<PendingOrderLine> pendingLines = new ArrayList<>();
         BigDecimal computedTotal = BigDecimal.ZERO;
 
@@ -148,10 +162,24 @@ public class OrderController {
         Order order = new Order();
         order.setOrderNumber("ORD-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS")));
         order.setOrderDate(LocalDateTime.now());
-        order.setStatus(checkoutNow ? "PAID" : "PENDING");
-        order.setFinalTotal(computedTotal);
+        order.setStatus(checkoutNow ? (pendingPaymentMethod ? "PENDING_PAYMENT" : "PAID") : "PENDING");
         order.setCustomer(customer);
         order.setStaff(staff);
+
+        Voucher appliedVoucher = null;
+        BigDecimal finalTotal = computedTotal;
+        String voucherCode = normalizeVoucherCode(appliedVoucherCode, currentVoucherCode);
+        if (voucherCode != null) {
+            try {
+                appliedVoucher = resolveVoucherByCode(voucherCode);
+                finalTotal = applyVoucherDiscount(computedTotal, appliedVoucher);
+            } catch (IllegalArgumentException ex) {
+                redirectAttributes.addFlashAttribute("error", ex.getMessage());
+                return "redirect:/staff/orders";
+            }
+        }
+        order.setVoucher(appliedVoucher);
+        order.setFinalTotal(finalTotal);
 
         for (PendingOrderLine line : pendingLines) {
             OrderDetail detail = new OrderDetail();
@@ -161,18 +189,48 @@ public class OrderController {
             detail.setUnitPrice(line.unitPrice());
             order.getOrderDetails().add(detail);
 
-            if (checkoutNow && line.inventory() != null) {
+            if (shouldCaptureImmediately && line.inventory() != null) {
                 line.inventory().updateStock(line.inventory().getQuantityStock() - line.quantity());
                 inventoryService.save(line.inventory());
             }
         }
 
+        PaymentExecutionResult paymentResult = null;
+        if (checkoutNow) {
+            try {
+                String orderInfo = "Thanh toan don " + order.getOrderNumber();
+                paymentResult = paymentService.applyPaymentForOrder(order, paymentMethod, finalTotal, orderInfo);
+            } catch (IllegalArgumentException ex) {
+                redirectAttributes.addFlashAttribute("error", ex.getMessage());
+                return "redirect:/staff/orders";
+            } catch (IllegalStateException ex) {
+                redirectAttributes.addFlashAttribute("error", ex.getMessage());
+                return "redirect:/staff/orders";
+            }
+        }
+
         Order savedOrder = orderService.save(order);
         if (checkoutNow) {
-            redirectAttributes.addFlashAttribute(
-                "success",
-                "Đã thanh toán đơn " + savedOrder.getOrderNumber() + " - " + formatCurrency(savedOrder.getFinalTotal())
-            );
+            if (paymentResult != null && paymentResult.externalPaymentRequired()) {
+                String qrUrl = resolveQrUrl(paymentResult);
+                redirectAttributes.addFlashAttribute(
+                    "success",
+                    "Đã tạo mã QR cho đơn " + savedOrder.getOrderNumber()
+                        + " (" + displayPaymentMethod(paymentMethod) + "). Vui lòng quét mã để thanh toán."
+                );
+                redirectAttributes.addFlashAttribute("paymentQrUrl", qrUrl);
+                redirectAttributes.addFlashAttribute("paymentPayUrl", paymentResult.payUrl());
+                redirectAttributes.addFlashAttribute("paymentOrderInfo", paymentResult.orderInfo());
+                redirectAttributes.addFlashAttribute("paymentAmount", savedOrder.getFinalTotal());
+                redirectAttributes.addFlashAttribute("paymentMethodLabel", displayPaymentMethod(paymentMethod));
+            } else {
+                redirectAttributes.addFlashAttribute(
+                    "success",
+                    "Đã thanh toán đơn " + savedOrder.getOrderNumber()
+                        + " bằng " + displayPaymentMethod(paymentMethod)
+                        + " - " + formatCurrency(savedOrder.getFinalTotal())
+                );
+            }
         } else {
             redirectAttributes.addFlashAttribute("success", "Đã lưu đơn chờ thanh toán: " + savedOrder.getOrderNumber());
         }
@@ -215,6 +273,7 @@ public class OrderController {
     @PostMapping("/{orderId}/checkout")
     @Transactional
     public String checkout(@PathVariable Integer orderId,
+                           @RequestParam(defaultValue = "CASH") String paymentMethod,
                            HttpSession session,
                            RedirectAttributes redirectAttributes) {
         Order order = orderService.findById(orderId).orElse(null);
@@ -263,32 +322,63 @@ public class OrderController {
             }
         }
 
-        BigDecimal total = BigDecimal.ZERO;
+        boolean pendingPaymentMethod = isPendingPaymentMethod(paymentMethod);
+        BigDecimal subtotal = BigDecimal.ZERO;
         for (OrderDetail detail : order.getOrderDetails()) {
             Product product = detail.getProduct();
             Inventory inventory = product.getInventory();
-            if (inventory == null) {
+            if (inventory == null && !pendingPaymentMethod) {
                 redirectAttributes.addFlashAttribute(
                     "error",
                     "Sản phẩm " + product.getProductName() + " chưa có tồn kho để trừ."
                 );
                 return "redirect:/staff/orders";
             }
-            inventory.updateStock(inventory.getQuantityStock() - detail.getQuantity());
-            inventoryService.save(inventory);
+            if (!pendingPaymentMethod && inventory != null) {
+                inventory.updateStock(inventory.getQuantityStock() - detail.getQuantity());
+                inventoryService.save(inventory);
+            }
 
             BigDecimal unitPrice = detail.getUnitPrice() == null ? BigDecimal.ZERO : detail.getUnitPrice();
-            total = total.add(unitPrice.multiply(BigDecimal.valueOf(Math.max(0, detail.getQuantity()))));
+            subtotal = subtotal.add(unitPrice.multiply(BigDecimal.valueOf(Math.max(0, detail.getQuantity()))));
         }
 
+        BigDecimal total = applyVoucherDiscount(subtotal, order.getVoucher());
         order.setFinalTotal(total);
-        order.setStatus("PAID");
+        order.setStatus(pendingPaymentMethod ? "PENDING_PAYMENT" : "PAID");
+        PaymentExecutionResult paymentResult;
+        try {
+            String orderInfo = "Thanh toan don " + order.getOrderNumber();
+            paymentResult = paymentService.applyPaymentForOrder(order, paymentMethod, total, orderInfo);
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+            return "redirect:/staff/orders";
+        } catch (IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+            return "redirect:/staff/orders";
+        }
         orderService.save(order);
 
-        redirectAttributes.addFlashAttribute(
-            "success",
-            "Đã thanh toán đơn " + order.getOrderNumber() + " - " + formatCurrency(order.getFinalTotal())
-        );
+        if (paymentResult.externalPaymentRequired()) {
+            String qrUrl = resolveQrUrl(paymentResult);
+            redirectAttributes.addFlashAttribute(
+                "success",
+                "Đã tạo mã QR cho đơn " + order.getOrderNumber()
+                    + " (" + displayPaymentMethod(paymentMethod) + "). Vui lòng quét mã để thanh toán."
+            );
+            redirectAttributes.addFlashAttribute("paymentQrUrl", qrUrl);
+            redirectAttributes.addFlashAttribute("paymentPayUrl", paymentResult.payUrl());
+            redirectAttributes.addFlashAttribute("paymentOrderInfo", paymentResult.orderInfo());
+            redirectAttributes.addFlashAttribute("paymentAmount", order.getFinalTotal());
+            redirectAttributes.addFlashAttribute("paymentMethodLabel", displayPaymentMethod(paymentMethod));
+        } else {
+            redirectAttributes.addFlashAttribute(
+                "success",
+                "Đã thanh toán đơn " + order.getOrderNumber()
+                    + " bằng " + displayPaymentMethod(paymentMethod)
+                    + " - " + formatCurrency(order.getFinalTotal())
+            );
+        }
         return "redirect:/staff/orders";
     }
 
@@ -332,8 +422,8 @@ public class OrderController {
             ? "--"
             : order.getOrderDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
         String status = order.getStatus() == null ? "PENDING" : order.getStatus().trim().toUpperCase(Locale.ROOT);
-        boolean canCancel = "PENDING".equals(status);
-        boolean canCheckout = "PENDING".equals(status);
+        boolean canCancel = "PENDING".equals(status) || "PENDING_PAYMENT".equals(status);
+        boolean canCheckout = "PENDING".equals(status) || "PENDING_PAYMENT".equals(status);
 
         return new StaffOrderView(
             order.getOrderId(),
@@ -513,6 +603,36 @@ public class OrderController {
         return String.format("%,.0f VND", amount);
     }
 
+    private String displayPaymentMethod(String paymentMethod) {
+        if (paymentMethod == null || paymentMethod.isBlank()) {
+            return "Tiền mặt";
+        }
+        return switch (paymentMethod.trim().toUpperCase(Locale.ROOT)) {
+            case "BANK_TRANSFER" -> "Chuyển khoản";
+            case "MOMO_VNPAY" -> "MoMo/VNPay";
+            default -> "Tiền mặt";
+        };
+    }
+
+    private boolean isPendingPaymentMethod(String paymentMethod) {
+        return MomoVnpayPaymentStrategy.METHOD_CODE.equalsIgnoreCase(paymentMethod)
+            || BankTransferPaymentStrategy.METHOD_CODE.equalsIgnoreCase(paymentMethod);
+    }
+
+    private String resolveQrUrl(PaymentExecutionResult paymentResult) {
+        if (paymentResult == null) {
+            return null;
+        }
+        if (paymentResult.qrCodeUrl() != null && !paymentResult.qrCodeUrl().isBlank()) {
+            return paymentResult.qrCodeUrl();
+        }
+        if (paymentResult.payUrl() == null || paymentResult.payUrl().isBlank()) {
+            return null;
+        }
+        return "https://api.qrserver.com/v1/create-qr-code/?size=240x240&data="
+            + URLEncoder.encode(paymentResult.payUrl(), StandardCharsets.UTF_8);
+    }
+
     private boolean isVoucherActive(Voucher voucher) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startDate = voucher.getStartDate();
@@ -525,6 +645,41 @@ public class OrderController {
             return false;
         }
         return true;
+    }
+
+    private Voucher resolveVoucherByCode(String voucherCode) {
+        String normalizedCode = voucherCode == null ? "" : voucherCode.trim();
+        if (normalizedCode.isEmpty()) {
+            throw new IllegalArgumentException("Mã voucher không hợp lệ.");
+        }
+        Voucher voucher = voucherService.findByCode(normalizedCode).orElse(null);
+        if (voucher == null) {
+            throw new IllegalArgumentException("Mã voucher không hợp lệ hoặc không tồn tại.");
+        }
+        if (!isVoucherActive(voucher)) {
+            throw new IllegalArgumentException("Voucher chưa đến thời gian áp dụng hoặc đã hết hạn.");
+        }
+        return voucher;
+    }
+
+    private String normalizeVoucherCode(String appliedVoucherCode, String currentVoucherCode) {
+        if (appliedVoucherCode != null && !appliedVoucherCode.isBlank()) {
+            return appliedVoucherCode.trim();
+        }
+        if (currentVoucherCode != null && !currentVoucherCode.isBlank()) {
+            return currentVoucherCode.trim();
+        }
+        return null;
+    }
+
+    private BigDecimal applyVoucherDiscount(BigDecimal subtotal, Voucher voucher) {
+        BigDecimal baseTotal = subtotal == null ? BigDecimal.ZERO : subtotal.max(BigDecimal.ZERO);
+        if (voucher == null) {
+            return baseTotal;
+        }
+        BigDecimal discount = voucher.getDiscountValue() == null ? BigDecimal.ZERO : voucher.getDiscountValue();
+        BigDecimal discountedTotal = baseTotal.subtract(discount);
+        return discountedTotal.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : discountedTotal;
     }
 
     public record StaffProductView(Integer productId,
