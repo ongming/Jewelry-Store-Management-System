@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 /**
  * Singleton Service để gửi email
  * Đảm bảo chỉ có duy nhất một instance của class này trong toàn bộ ứng dụng
+ * Spring tự động quản lý lifecycle thông qua @Service + @Scope("singleton")
  */
 @Service
 @Scope("singleton")
@@ -16,30 +17,6 @@ public class EmailService {
 
     @Autowired
     private JavaMailSender mailSender;
-    
-    // Singleton instance
-    private static EmailService instance;
-    
-    /**
-     * Constructor private để ngăn instantiation trực tiếp
-     * Spring sẽ quản lý lifecycle
-     */
-    private EmailService() {
-    }
-    
-    /**
-     * Lấy singleton instance
-     */
-    public static synchronized EmailService getInstance() {
-        return instance;
-    }
-    
-    /**
-     * Setter được gọi bởi Spring khi khởi tạo singleton
-     */
-    public void setInstance() {
-        instance = this;
-    }
 
     /**
      * Gửi email OTP đến người dùng

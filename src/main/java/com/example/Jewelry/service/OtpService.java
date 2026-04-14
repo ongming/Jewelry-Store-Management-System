@@ -24,30 +24,6 @@ public class OtpService {
     @Autowired
     private EmailService emailService;
 
-    // Singleton instance
-    private static OtpService instance;
-
-    /**
-     * Constructor private để ngăn instantiation trực tiếp
-     * Spring sẽ quản lý lifecycle
-     */
-    private OtpService() {
-    }
-
-    /**
-     * Lấy singleton instance
-     */
-    public static synchronized OtpService getInstance() {
-        return instance;
-    }
-
-    /**
-     * Setter được gọi bởi Spring khi khởi tạo singleton
-     */
-    public void setInstance() {
-        instance = this;
-    }
-
     /**
      * Tạo và gửi OTP cho email
      */
