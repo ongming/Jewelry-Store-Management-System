@@ -1,7 +1,8 @@
-package com.example.Jewelry.template;
+package com.example.Jewelry.template.pattern;
 
 import com.example.Jewelry.model.entity.Inventory;
 import com.example.Jewelry.repository.InventoryRepository;
+import com.example.Jewelry.template.ReportRow;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -28,14 +29,10 @@ public class InventoryReportTemplate extends ReportTemplate {
             .collect(Collectors.toList());
     }
 
-    @Override
-    protected ReportResult aggregate(List<ReportRow> data, LocalDate start, LocalDate end) {
-        return ReportResult.fromRows("Inventory report", start, end, data);
-    }
-
     private ReportRow toRow(Inventory inventory, LocalDateTime snapshotTime) {
         String label = inventory.getProduct() == null ? "Unknown" : inventory.getProduct().getProductName();
         BigDecimal metric = BigDecimal.valueOf(inventory.getQuantityStock());
         return new ReportRow(label, metric, inventory.getQuantityStock(), snapshotTime);
     }
 }
+

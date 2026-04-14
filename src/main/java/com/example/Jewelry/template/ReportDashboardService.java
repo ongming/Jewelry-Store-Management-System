@@ -1,5 +1,14 @@
 package com.example.Jewelry.template;
 
+import com.example.Jewelry.template.pattern.AggregationStrategy;
+import com.example.Jewelry.template.pattern.DailyAggregation;
+import com.example.Jewelry.template.pattern.InventoryReportTemplate;
+import com.example.Jewelry.template.pattern.MonthlyAggregation;
+import com.example.Jewelry.template.pattern.RevenueReportTemplate;
+import com.example.Jewelry.template.pattern.TopProductReportTemplate;
+import com.example.Jewelry.template.pattern.WeeklyAggregation;
+import com.example.Jewelry.template.pattern.YearlyAggregation;
+
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -41,7 +50,9 @@ public class ReportDashboardService {
         return switch (period) {
             case WEEKLY -> new WeeklyAggregation();
             case MONTHLY -> new MonthlyAggregation();
+            case YEARLY -> new YearlyAggregation();
             default -> new DailyAggregation();
         };
     }
 }
+
