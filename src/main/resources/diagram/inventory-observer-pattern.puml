@@ -1,0 +1,102 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam monochrome true
+
+title Observer Pattern - Inventory Stock Change Flow
+
+package "Publisher Layer" {
+  class InventoryServiceImpl <<ConcreteSubject>> {
+    +addStock(...)
+    +importStock(...)
+    +deductStockForSale(...)
+    -publishStockChanged(...)
+  }
+
+  class ApplicationEventPublisher <<Subject>> {
+    +publishEvent(event)
+  }
+
+  InventoryServiceImpl --> ApplicationEventPublisher : uses
+}
+
+package "Event Contract" {
+  class InventoryStockChangedEvent <<Event>> {
+    -productId: Integer
+    -oldQuantity: int
+    -delta: int
+    -newQuantity: int
+    -changeType: InventoryChangeType
+    -actorAccountId: Integer
+    -referenceType: InventoryReferenceType
+    -referenceId: Integer
+    -occurredAt: LocalDateTime
+  }
+
+  enum InventoryChangeType {
+    IMPORT
+    SALE
+    ADJUSTMENT
+    RETURN
+  }
+
+  enum InventoryReferenceType {
+    IMPORT_RECEIPT
+    ORDER
+    MANUAL_ADJUSTMENT
+    SYSTEM
+  }
+
+  InventoryStockChangedEvent --> InventoryChangeType
+  InventoryStockChangedEvent --> InventoryReferenceType
+}
+
+package "Observer Layer" {
+  class LowStockAlertListener <<ConcreteObserver>> {
+    +handle(event)
+  }
+
+  class InventoryAuditListener <<ConcreteObserver>> {
+    +handle(event)
+  }
+
+  class LowStockAlertService {
+    +addAlert(...)
+    +getAlerts()
+  }
+
+  class ProductRepository
+
+  LowStockAlertListener --> LowStockAlertService : addAlert(...)
+  LowStockAlertListener --> ProductRepository : resolve productName
+}
+
+package "Presentation Layer" {
+  class OrderController
+  class InventoryController
+
+  OrderController --> LowStockAlertService : getAlerts()
+  InventoryController --> LowStockAlertService : getAlerts()
+}
+
+ApplicationEventPublisher ..> InventoryStockChangedEvent : publish
+ApplicationEventPublisher ..> LowStockAlertListener : dispatch event
+ApplicationEventPublisher ..> InventoryAuditListener : dispatch event
+LowStockAlertListener ..> InventoryStockChangedEvent : @TransactionalEventListener(AFTER_COMMIT)
+InventoryAuditListener ..> InventoryStockChangedEvent : @TransactionalEventListener(AFTER_COMMIT)
+
+note right of InventoryServiceImpl
+Publish points:
+- addStock(...)
+- importStock(...)
+- deductStockForSale(...)
+end note
+
+note bottom of LowStockAlertListener
+Trigger rule:
+if event.newQuantity < 5
+-> create low stock alert
+end note
+
+@enduml
+

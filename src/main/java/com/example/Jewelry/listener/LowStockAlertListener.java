@@ -8,20 +8,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-/**
- * Observer (Listener) #1: Cảnh báo tồn kho thấp.
- *
- * Tại sao dùng @TransactionalEventListener(phase = AFTER_COMMIT)?
- * - AFTER_COMMIT nghĩa là listener CHỈ CHẠY SAU KHI transaction đã commit
- *   thành công xuống database.
- * - Nếu transaction bị rollback (lỗi) → listener KHÔNG CHẠY → không cảnh báo
- *   nhầm cho dữ liệu chưa thực sự thay đổi.
- *
- * Tại sao tách thành class riêng?
- * - Service chính (InventoryServiceImpl) không cần biết có cảnh báo hay không.
- * - Muốn tắt cảnh báo? → Xóa hoặc comment @Component, service vẫn chạy bình thường.
- * - Muốn đổi ngưỡng cảnh báo? → Chỉ sửa file này, không ảnh hưởng service.
- */
 @Component
 public class LowStockAlertListener {
 

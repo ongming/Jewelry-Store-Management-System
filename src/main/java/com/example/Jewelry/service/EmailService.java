@@ -77,4 +77,20 @@ public class EmailService {
             System.err.println("Lỗi gửi email xác nhận: " + e.getMessage());
         }
     }
+
+    /**
+     * Gửi email văn bản tổng quát
+     */
+    public void sendPlainTextEmail(String toEmail, String subject, String body) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom("noreply@jewelrystore.com");
+            message.setTo(toEmail);
+            message.setSubject(subject);
+            message.setText(body);
+            mailSender.send(message);
+        } catch (Exception e) {
+            System.err.println("Lỗi gửi email thông báo: " + e.getMessage());
+        }
+    }
 }
