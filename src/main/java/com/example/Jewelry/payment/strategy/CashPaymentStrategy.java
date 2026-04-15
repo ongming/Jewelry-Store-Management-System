@@ -18,6 +18,7 @@ public class CashPaymentStrategy implements PaymentStrategy {
 
     @Override
     public PaymentExecutionResult execute(Order order, BigDecimal amount, String orderInfo) {
+        // Tiền mặt không cần gọi cổng thanh toán ngoài.
         Payment payment = new Payment();
         payment.setMethod(METHOD_CODE);
         payment.setOrder(order);

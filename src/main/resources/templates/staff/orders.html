@@ -39,6 +39,18 @@
             <p style="margin-top: 8px;" th:if="${paymentPayUrl}">
                 <a th:href="${paymentPayUrl}" target="_blank" rel="noopener">Mở trang thanh toán</a>
             </p>
+            <div th:if="${paymentOrderId}" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+                <form th:action="@{/staff/orders/{id}/confirm-payment(id=${paymentOrderId})}"
+                      method="post"
+                      onsubmit="return confirm('Đã nhận tiền? Xác nhận để hoàn tất thanh toán đơn hàng.');">
+                    <button class="btn btn-checkout btn-sm" type="submit">Xác nhận đã thanh toán</button>
+                </form>
+                <form th:action="@{/staff/orders/{id}/cancel(id=${paymentOrderId})}"
+                      method="post"
+                      onsubmit="return confirm('Hủy đơn này? Đơn sẽ không được mua nữa.');">
+                    <button class="btn btn-danger-outline btn-sm" type="submit">Hủy đơn</button>
+                </form>
+            </div>
         </section>
 
         <section class="pos-toolbar">

@@ -244,6 +244,7 @@ public class OrderController {
                 redirectAttributes.addFlashAttribute("paymentOrderInfo", paymentResult.orderInfo());
                 redirectAttributes.addFlashAttribute("paymentAmount", savedOrder.getFinalTotal());
                 redirectAttributes.addFlashAttribute("paymentMethodLabel", displayPaymentMethod(paymentMethod));
+                redirectAttributes.addFlashAttribute("paymentOrderId", savedOrder.getOrderId());
             } else {
                 redirectAttributes.addFlashAttribute(
                     "success",
@@ -403,6 +404,7 @@ public class OrderController {
             redirectAttributes.addFlashAttribute("paymentOrderInfo", paymentResult.orderInfo());
             redirectAttributes.addFlashAttribute("paymentAmount", order.getFinalTotal());
             redirectAttributes.addFlashAttribute("paymentMethodLabel", displayPaymentMethod(paymentMethod));
+            redirectAttributes.addFlashAttribute("paymentOrderId", order.getOrderId());
         } else {
             redirectAttributes.addFlashAttribute(
                 "success",
@@ -416,6 +418,100 @@ public class OrderController {
             redirectAttributes.addFlashAttribute("showLowStockToast", true);
             redirectAttributes.addFlashAttribute("lowStockAlertCountBefore", lowStockAlertCountBefore);
         }
+        return "redirect:/staff/orders";
+    }
+
+    @PostMapping("/{orderId}/confirm-payment")
+    @Transactional
+    public String confirmPendingPayment(@PathVariable Integer orderId,
+                                        HttpSession session,
+                                        RedirectAttributes redirectAttributes) {
+        Order order = orderService.findById(orderId).orElse(null);
+        if (order == null) {
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy đơn hàng cần xác nhận thanh toán.");
+            return "redirect:/staff/orders";
+        }
+
+        Integer accountId = (Integer) session.getAttribute("accountId");
+        String roleName = (String) session.getAttribute("roleName");
+        if (!canManageOrder(order, accountId, roleName)) {
+            redirectAttributes.addFlashAttribute("error", "Bạn không có quyền thao tác đơn hàng này.");
+            return "redirect:/staff/orders";
+        }
+
+        String currentStatus = order.getStatus() == null ? "PENDING" : order.getStatus().trim().toUpperCase(Locale.ROOT);
+        if ("PAID".equals(currentStatus)) {
+            redirectAttributes.addFlashAttribute("error", "Đơn hàng này đã thanh toán trước đó.");
+            return "redirect:/staff/orders";
+        }
+        if ("CANCELLED".equals(currentStatus)) {
+            redirectAttributes.addFlashAttribute("error", "Không thể xác nhận đơn đã hủy.");
+            return "redirect:/staff/orders";
+        }
+        if (!"PENDING_PAYMENT".equals(currentStatus)) {
+            redirectAttributes.addFlashAttribute("error", "Đơn hàng chưa ở trạng thái chờ xác nhận thanh toán.");
+            return "redirect:/staff/orders";
+        }
+        if (order.getOrderDetails() == null || order.getOrderDetails().isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Đơn hàng không có chi tiết sản phẩm để xác nhận.");
+            return "redirect:/staff/orders";
+        }
+
+        for (OrderDetail detail : order.getOrderDetails()) {
+            Product product = detail.getProduct();
+            if (product == null) {
+                redirectAttributes.addFlashAttribute("error", "Đơn hàng có dòng sản phẩm không hợp lệ.");
+                return "redirect:/staff/orders";
+            }
+            Inventory inventory = product.getInventory();
+            int stock = inventory == null ? 0 : Math.max(0, inventory.getQuantityStock());
+            if (detail.getQuantity() > stock) {
+                redirectAttributes.addFlashAttribute(
+                    "error",
+                    "Không đủ tồn kho cho " + product.getProductName() + ". Còn " + stock + "."
+                );
+                return "redirect:/staff/orders";
+            }
+        }
+
+        int lowStockAlertCountBefore = lowStockAlertService.getAlerts().size();
+        BigDecimal subtotal = BigDecimal.ZERO;
+        for (OrderDetail detail : order.getOrderDetails()) {
+            Product product = detail.getProduct();
+            Inventory inventory = product.getInventory();
+            if (inventory == null) {
+                redirectAttributes.addFlashAttribute(
+                    "error",
+                    "Sản phẩm " + product.getProductName() + " chưa có tồn kho để trừ."
+                );
+                return "redirect:/staff/orders";
+            }
+
+            inventoryService.deductStockForSale(
+                product.getProductId(),
+                detail.getQuantity(),
+                accountId,
+                orderId
+            );
+
+            BigDecimal unitPrice = detail.getUnitPrice() == null ? BigDecimal.ZERO : detail.getUnitPrice();
+            subtotal = subtotal.add(unitPrice.multiply(BigDecimal.valueOf(Math.max(0, detail.getQuantity()))));
+        }
+
+        BigDecimal total = applyVoucherDiscount(subtotal, order.getVoucher());
+        order.setFinalTotal(total);
+        order.setStatus("PAID");
+        orderService.save(order);
+
+        String paymentMethod = order.getPayment() == null ? null : order.getPayment().getMethod();
+        redirectAttributes.addFlashAttribute(
+            "success",
+            "Đã xác nhận thanh toán đơn " + order.getOrderNumber()
+                + " bằng " + displayPaymentMethod(paymentMethod)
+                + " - " + formatCurrency(order.getFinalTotal())
+        );
+        redirectAttributes.addFlashAttribute("showLowStockToast", true);
+        redirectAttributes.addFlashAttribute("lowStockAlertCountBefore", lowStockAlertCountBefore);
         return "redirect:/staff/orders";
     }
 

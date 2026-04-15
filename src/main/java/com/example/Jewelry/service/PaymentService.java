@@ -16,6 +16,12 @@ public interface PaymentService {
 
     Payment save(Payment entity);
 
+    /**
+     * API nghiệp vụ chính cho luồng thanh toán:
+     * - resolve đúng strategy theo paymentMethod
+     * - execute strategy để tạo Payment và dữ liệu thanh toán ngoài (nếu có)
+     * - gắn Payment vào Order để controller quyết định trạng thái tiếp theo
+     */
     PaymentExecutionResult applyPaymentForOrder(Order order, String paymentMethod, BigDecimal amount, String orderInfo);
 
     void deleteById(Integer id);

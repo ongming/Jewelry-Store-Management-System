@@ -44,8 +44,11 @@ public class PaymentServiceImpl implements PaymentService {
         if (order == null) {
             throw new IllegalArgumentException("Đơn hàng không hợp lệ để thanh toán.");
         }
+        // Bước 1: chọn đúng Strategy theo paymentMethod.
         PaymentStrategy strategy = paymentStrategyResolver.resolve(paymentMethod);
+        // Bước 2: strategy xử lý nghiệp vụ thanh toán cụ thể (cash/bank/momo).
         PaymentExecutionResult result = strategy.execute(order, amount, orderInfo);
+        // Bước 3: liên kết Payment vào Order để controller lưu trạng thái đơn.
         order.setPayment(result.payment());
         return result;
     }

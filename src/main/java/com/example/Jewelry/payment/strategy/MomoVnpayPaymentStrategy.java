@@ -26,6 +26,7 @@ public class MomoVnpayPaymentStrategy implements PaymentStrategy {
 
     @Override
     public PaymentExecutionResult execute(Order order, BigDecimal amount, String orderInfo) {
+        // Gọi MoMo sandbox để lấy payUrl/qrCodeUrl cho thanh toán online.
         MomoCreatePaymentResponse response = momoSandboxClient.createPayment(order.getOrderNumber(), amount, orderInfo);
 
         Payment payment = new Payment();

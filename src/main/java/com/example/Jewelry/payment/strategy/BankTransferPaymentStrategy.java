@@ -34,6 +34,7 @@ public class BankTransferPaymentStrategy implements PaymentStrategy {
 
     @Override
     public PaymentExecutionResult execute(Order order, BigDecimal amount, String orderInfo) {
+        // Sinh link QR VietQR để khách chuyển khoản, trạng thái đơn sẽ chờ xác nhận tiền về.
         String amountValue = normalizeAmount(amount);
         String encodedInfo = URLEncoder.encode(orderInfo == null ? "" : orderInfo, StandardCharsets.UTF_8);
         String encodedName = URLEncoder.encode(accountName == null ? "" : accountName, StandardCharsets.UTF_8);

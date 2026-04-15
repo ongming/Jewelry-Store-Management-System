@@ -24,6 +24,10 @@ public class PaymentStrategyResolver {
         }
     }
 
+    /**
+     * Chọn đúng Strategy theo mã phương thức thanh toán người dùng gửi lên.
+     * Nếu không truyền methodCode thì fallback về CASH.
+     */
     public PaymentStrategy resolve(String methodCode) {
         String normalized = normalize(methodCode);
         PaymentStrategy strategy = strategyMap.get(normalized);
